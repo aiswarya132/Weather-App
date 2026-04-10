@@ -1,0 +1,2090 @@
+
+var dfBuildVersion = '1.0.0.225';
+window.DFW = window.DFW || {};
+window.RTN = window.RTN || {};
+window.RDL=window.RDL||{};
+window.DFW.renderCount = 0;
+window.DFW.isDFBoldProAdExp = false;
+window.DFW.isRemoveDOCXExp=false;
+window.DFW.isLetterConfig = false;
+window.DFW.DF_Exp_AdSlot = '';
+window.DFW.isFRROneClickExp = false;
+window.DFW.resumeReasonOption = localStorage.getItem('resumereason') || 'jobs';
+window.DFW.sessionStorageData = JSON.parse(sessionStorage.getItem("userinfo"));
+window.DFW.FunnelType = {
+  Download: 'Download'
+}
+
+window.DFW.DocType = {
+  Resume: 'RSME',
+  Letter: 'LETR'
+}
+window.DFW.FileExtension = {
+  "PDF": "PDF",
+  "TXT": "TXT",
+  "DOCX": "DOCX",
+  "SVG": "SVG",
+  "JPG": "JPEG"
+}
+
+window.isIPAD = function () {
+  let _isIPAD = false;
+  if (navigator.userAgent.match(/iPad/i)) {
+    _isIPAD = true;
+  }
+  else {
+    _isIPAD = navigator.maxTouchPoints && navigator.maxTouchPoints > 2 && /MacIntel/.test(navigator.platform)
+  }
+  return !!_isIPAD;
+}
+
+window.DFW.Widget = (function (scope) {
+  function shouldLoadBundleUsingVersion() {
+    if (window.DFW.Environment == "dev") {
+      return false;
+    } else {
+      switch (window.DFW.PortalCd.toLowerCase()) {
+        case "mpr":
+        case "rtl":
+        case "rbl":
+        case "fxj":
+        case "rna":
+        case "cln":
+        case "mpc":
+        case "zty":
+        case "lca":
+        case "hlm":
+        case "jbh":
+        case "muk":
+        case "mfr":
+        case "mon":
+        case "mes":
+        case "mit":
+        case "mbr":
+        case "mde":
+        case "mnl":
+        case "mmx":
+        case "luk":
+        case "lfr":
+        case "lit":
+        case "les":
+        case "lpl":
+        case "lde":
+        case "lpt":
+        case "lmx":
+        case "lbr":
+        case "lfi":
+        case "lnl":
+        case "lsa":
+        case "lsw":
+        case "ldk":
+        case "lno":
+        case "lgr":
+        case "lro":
+        case "lid":
+        case "lkr":
+        case "ljp":
+          return true;
+        default:
+          return false;
+      }
+    }
+  }
+
+  function getFileName(filePath) {
+    const addVersion = shouldLoadBundleUsingVersion();
+    if (addVersion) {
+      const filePathArr = filePath.split(".");
+      const lastItemIndex=filePathArr.length-1;
+      const fileTypeExt =filePathArr[lastItemIndex];
+      return filePath.replace(`.${fileTypeExt}`,`-${dfBuildVersion}.${fileTypeExt}`);
+    }
+    return filePath;
+  }
+  function wlbSupportFullDFNL () {
+    if (window.DFW.Environment=="dev") {
+      if(window.DFW.PortalCd == "mpr" || window.DFW.PortalCd == "lca") {
+        addLinkTag("stylesheet", getFileName(window.DFW.LocalBaseurl + "build/stylesheet/perfect/wlb/mainFullPage.css"));
+      }else if(window.DFW.PortalCd == "rna") {
+        addLinkTag("stylesheet", getFileName(window.DFW.LocalBaseurl + "build/stylesheet/now/wlb/mainFullPage.css"));
+      }
+      if (window.location.pathname && (window.location.pathname.indexOf('/documenthome') > -1 || (window.DFW.Config.isNowPortal && window.location.pathname.indexOf('/dashboard') > -1))) {
+        addLinkTag("stylesheet", getFileName(window.DFW.LocalBaseurl + "build/stylesheet/" + window.DFW.PortalCd + "/main.css"));
+      }
+    }else {
+      if(window.DFW.PortalCd == "mpr" || window.DFW.PortalCd == "lca") {
+        addLinkTag("stylesheet", getFileName((window.DFW.subDomainUrl || window.DFW.Baseurl) + "rtn-content/dfnl/" + window.DFW.Environment + "/stylesheet/perfect/wlb/mainFullPage.css"));
+      }else if(window.DFW.PortalCd == "rna") {
+        addLinkTag("stylesheet", getFileName((window.DFW.subDomainUrl || window.DFW.Baseurl) + "rtn-content/dfnl/" + window.DFW.Environment + "/stylesheet/now/wlb/mainFullPage.css"));
+      }
+      if (window.location.pathname && (window.location.pathname.indexOf('/documenthome') > -1 || (window.DFW.Config.isNowPortal && window.location.pathname.indexOf('/dashboard') > -1))) {
+        addLinkTag("stylesheet", getFileName((window.DFW.subDomainUrl || window.DFW.Baseurl) + "rtn-content/dfnl/" + window.DFW.Environment + "/stylesheet/" + window.DFW.PortalCd + "/main.css"));
+      }
+    }
+  }
+
+  function checkInParityExp() {
+    if(!window.DFW.Config.isCorePortal) return false
+    if(window.DFW.Config.forceFecthExpList) {
+      if(window.DFW.Config.ParityChangesCVRExpId || window.DFW.Config.ParityChangesRC1ExpId){
+        return  getUserExperimentVariant(window.DFW.Config.ParityChangesCVRExpId) > 2 || getUserExperimentVariant(window.DFW.Config.ParityChangesRC1ExpId) > 2;
+      }
+    } 
+    return true;
+  }
+  function loadCss() {
+    const loadFullpagecss = window.DFW.isFullScreenIntlDfnl ? window.DFW.isFullScreenIntlDfnl : (GetDeviceTypeUsingUserAgent() == 'desktop' ? (window.DFW.isFullPageDFExp || window.DFW.Config.baselineFullscreenDF || checkInParityExp() || window.DFW.isCLFullPageFeatureEnabled) : GetDeviceTypeUsingUserAgent() == 'tablet' ? window.DFW.Config.baselineFullscreenDF || checkInParityExp() || (window.DFW.isCLFullPageFeatureEnabled && window.DFW.docType == window.DFW.DocType.Letter) : false);
+    const fastFollow = window.DFW.Config.fastFollow;
+    const dfwStoragePath = window.DFW.Config.isCorePortal ? "rtn-content/dfnl/" : "blobcontent/dfnl/";
+    if (window.DFW.Environment == "dev") {
+      loadScript(getFileName(window.DFW.LocalBaseurl + "build/downloadfunnelwidget-bundle.js")).then(function () {
+        window.DFW.BundleLoaded = true;
+      });
+      if (loadFullpagecss) {
+        if (window.DFW.isFullScreenIntlDfnl) {
+          addLinkTag("stylesheet", getFileName(`${window.DFW.LocalBaseurl}build/stylesheet/${window.DFW.PortalCd}jt/${window.DFW.isINTLRwd ? "mainRWD.css" : "mainFullPage.css"}`));
+        }
+        else {
+          let urlLinik = window.location.href;
+          let urlLinikSplit = urlLinik.split("?");
+          if (urlLinikSplit[1] && urlLinikSplit[1].includes("wlbdemo") && readCookie("wlbdemo") == "wlb") {
+            wlbSupportFullDFNL();
+          }
+          else if (fastFollow) {
+            addLinkTag("stylesheet", getFileName(window.DFW.LocalBaseurl + "build/stylesheet/wlbDesktopStyles/" + window.DFW.PortalCd + "/mainFullPage.css"));
+          }
+          else {
+            addLinkTag("stylesheet", getFileName(window.DFW.LocalBaseurl + "build/stylesheet/" + window.DFW.PortalCd + "/mainFullPage.css"));
+            if (window.location.pathname && (window.location.pathname.indexOf('/documenthome') > -1 || (window.DFW.Config.isNowPortal && window.location.pathname.indexOf('/dashboard') > -1))) {
+              addLinkTag("stylesheet", getFileName(window.DFW.LocalBaseurl + "build/stylesheet/" + window.DFW.PortalCd + "/main.css"));
+            }
+          }
+        }
+      }
+      else if(fastFollow) {
+        if (GetDeviceTypeUsingUserAgent() != 'mobile' && window.DFW.Config.fullPageDFExp) {
+          addLinkTag("stylesheet", getFileName(window.DFW.LocalBaseurl + "build/stylesheet/" + window.DFW.PortalCd + "/main.css"));
+        } else {
+          addLinkTag("stylesheet", getFileName(window.DFW.LocalBaseurl + "build/stylesheet/wlbmobstyles/" + window.DFW.PortalCd + "/main.css"));
+        }
+      }
+      else {
+        if (window.DFW.enableFunnelOptimization) {
+          addLinkTag("stylesheet", getFileName(window.DFW.LocalBaseurl + "build/stylesheet/" + window.DFW.PortalCd + "jt/mainOptimized.css"));
+        } else if(window.DFW.techConnectedExp && GetDeviceTypeUsingUserAgent() == 'mobile') {
+          addLinkTag("stylesheet", getFileName(window.DFW.LocalBaseurl + "build/stylesheet/" + window.DFW.PortalCd + "/techconnected/main.css"));
+        } else {
+          addLinkTag("stylesheet", getFileName(window.DFW.LocalBaseurl + "build/stylesheet/" + window.DFW.PortalCd + "/main.css"));
+        }
+      }
+    }
+    else {
+      loadScript(getFileName((window.DFW.subDomainUrl || window.DFW.Baseurl) + dfwStoragePath + window.DFW.Environment + "/downloadfunnelwidget-bundle.js")).then(function () {
+        window.DFW.BundleLoaded = true;
+      });
+      //will remove mprjt code support from widget and should derived from DFW object.
+
+      if (window.DFW.isINTLJoshua) {
+        if (window.DFW.isFullScreenIntlDfnl) {
+          addLinkTag("stylesheet", getFileName((window.DFW.subDomainUrl || window.DFW.Baseurl) + "blobcontent/dfnl/" + window.DFW.Environment + "/stylesheet/" + window.DFW.PortalCd + "jt/mainFullPage.css"));
+        }
+        else if (window.DFW.enableFunnelOptimization) {
+          addLinkTag("stylesheet", getFileName((window.DFW.subDomainUrl || window.DFW.Baseurl) + "blobcontent/dfnl/" + window.DFW.Environment + "/stylesheet/" + window.DFW.PortalCd + "jt/mainOptimized.css"));
+        }
+        else {
+          addLinkTag("stylesheet", getFileName((window.DFW.subDomainUrl || window.DFW.Baseurl) + "blobcontent/dfnl/" + window.DFW.Environment + "/stylesheet/" + window.DFW.PortalCd + "jt/main.css"));
+        }
+      }
+      else if (loadFullpagecss) {
+        if (window.DFW.isINTLFlow) {
+          addLinkTag("stylesheet", getFileName(`${window.DFW.subDomainUrl || window.DFW.Baseurl}blobcontent/dfnl/${window.DFW.Environment}/stylesheet/${window.DFW.PortalCd}jt/${window.DFW.isINTLRwd ? "mainRWD.css" : "mainFullPage.css"}`));
+        } else {
+          let urlLinik = window.location.href;
+          let urlLinikSplit = urlLinik.split("?");
+          if (urlLinikSplit[1] && urlLinikSplit[1].includes("wlbdemo") && readCookie("wlbdemo") == "wlb" && (window.DFW.Environment.toLowerCase() == "qa" || window.DFW.Environment.toLowerCase() == "reg")) {
+            wlbSupportFullDFNL();
+          }
+          else if (fastFollow) {
+            addLinkTag(
+              "stylesheet",
+              getFileName(
+                (window.DFW.subDomainUrl || window.DFW.Baseurl) +
+                 dfwStoragePath +
+                  window.DFW.Environment +
+                  "/stylesheet/wlbDesktopStyles/" +
+                  window.DFW.PortalCd +
+                  "/mainFullPage.css"
+              )
+            );
+          }
+          else {
+            addLinkTag("stylesheet", getFileName((window.DFW.subDomainUrl || window.DFW.Baseurl) + dfwStoragePath + window.DFW.Environment + "/stylesheet/" + window.DFW.PortalCd + "/mainFullPage.css"));
+            if (window.location.pathname && (window.location.pathname.indexOf('/documenthome') > -1 || (window.DFW.Config.isNowPortal && window.location.pathname.indexOf('/dashboard') > -1))) {
+              addLinkTag("stylesheet", getFileName((window.DFW.subDomainUrl || window.DFW.Baseurl) +  dfwStoragePath + window.DFW.Environment + "/stylesheet/" + window.DFW.PortalCd + "/main.css"));
+            }
+          }
+        }
+      }
+      else if(fastFollow && checkInParityExp()) {
+        if (GetDeviceTypeUsingUserAgent() != 'mobile' && window.DFW.Config.fullPageDFExp) {
+          addLinkTag("stylesheet", getFileName((window.DFW.subDomainUrl || window.DFW.Baseurl) + dfwStoragePath + window.DFW.Environment + "/stylesheet/" + window.DFW.PortalCd + "/main.css"));
+        } else {
+          addLinkTag("stylesheet", getFileName((window.DFW.subDomainUrl || window.DFW.Baseurl) + dfwStoragePath + window.DFW.Environment + "/stylesheet/wlbmobstyles/" + window.DFW.PortalCd + "/main.css"));
+        }
+      }
+      else {
+        if(window.DFW.enableFunnelOptimization && window.DFW.Config.isLCINTL) {
+          addLinkTag("stylesheet", getFileName((window.DFW.subDomainUrl || window.DFW.Baseurl) + "blobcontent/dfnl/" + window.DFW.Environment + "/stylesheet/" + window.DFW.PortalCd + "jt/mainOptimized.css"));
+        } else if(window.DFW.techConnectedExp && GetDeviceTypeUsingUserAgent() == 'mobile') {
+          const theme = window.DFW.isJTTechconnectedTheme ? "/jt-techconnected" : "/techconnected";
+          addLinkTag("stylesheet", getFileName((window.DFW.subDomainUrl || window.DFW.Baseurl) + "blobcontent/dfnl/" + window.DFW.Environment + "/stylesheet/" + window.DFW.PortalCd + theme + "/main.css"));
+        }
+        else {
+          addLinkTag("stylesheet", getFileName((window.DFW.subDomainUrl || window.DFW.Baseurl) + dfwStoragePath + window.DFW.Environment + "/stylesheet/" + window.DFW.PortalCd + "/main.css"));
+        }        
+      }
+    }
+  }
+  let pseudoLocalFlag = GetQueryString("env") || readCookie("env");
+  if (pseudoLocalFlag != null && pseudoLocalFlag != "null" && pseudoLocalFlag != "") {
+    setPseudoLocalCookie("env", pseudoLocalFlag, 18000);
+  }
+
+  var handleCLAndCVLocalization = function(result, resolve) {
+    let localizationFolderName = window.DFW.Config.localizationFolderName;
+    window.DFW.cultureValue = window.DFW.Config.localizationFileName ? window.DFW.Config.localizationFileName : window.DFW.cultureValue;
+    let url = `${(window.DFW.subDomainUrl || window.DFW.Baseurl)}blobcontent/dfnl/${window.DFW.Environment}/resource/${localizationFolderName}/${window.DFW.cultureValue}.json`;
+    callAjax(url,"GET",false,false,handleLiteLocalization,resolve);
+    handleLetterLocalization(result, resolve);
+  }
+
+  var getCLAndCVLocalization = function (resolve) {
+    let configFileName = `config_${window.DFW.PortalCd}.json`;
+    let cvUrl = isPseudoLocalization() ? (window.DFW.subDomainUrl || window.DFW.Baseurl) + "blobcontent/dfnl/" + window.DFW.Environment + "/pseudo_config_" + window.DFW.PortalCd + ".json" : getFileName((window.DFW.subDomainUrl || window.DFW.Baseurl) + "blobcontent/dfnl/" + window.DFW.Environment + "/"+configFileName);
+    return new Promise(function (resolve, reject) {
+        callAjax(cvUrl,"GET", false, false,
+          function (result) {
+            var cvData = JSON.parse(result);
+            if(cvData && cvData.Config?.localizationFolderName) {
+              if(window.DFW.isLitePortal && window.DFW.cultureValue == "en") {
+                cvData.Config = {...cvData.Config, ...cvData.Config.en};
+              }
+              handleConfig(cvData.Config);
+              handleCLAndCVLocalization(result, resolve);
+            }
+            else {
+              reject && reject();
+            }
+          }
+        );
+    }).then(function(data){
+      resolve(data)
+    });
+  };
+
+  var loadConfig = function(configFileName) { 
+    return new Promise(function (resolve, reject) {
+      let configUrl = "";
+      const dfwStoragePath = window.DFW.isCorePortal ? "rtn-content/dfnl/" : "blobcontent/dfnl/";
+      if (window.DFW.loadCLAndCVLocalization) {
+         getCLAndCVLocalization(resolve)
+      } else {
+        if (window.DFW.isTestBed) {
+          configUrl = pseudoLocalFlag != null && pseudoLocalFlag != "null" && pseudoLocalFlag != "" 
+            ? window.DFW.subDomainUrl + "blobcontent/pwb/locales/common/" +
+            configFileName 
+            :getFileName(window.DFW.LocalBaseurl + "blobcontent/config_dev/" + configFileName);
+        } else {
+          configUrl = pseudoLocalFlag != null && pseudoLocalFlag != "null" && pseudoLocalFlag != "" 
+            ? window.DFW.subDomainUrl + "blobcontent/pwb/locales/common/" +
+            configFileName
+            : getFileName((window.DFW.subDomainUrl || window.DFW.Baseurl) +
+              dfwStoragePath +
+              window.DFW.Environment +
+              "/" +
+              configFileName);
+        }
+        callAjax(
+          configUrl,
+          "GET",
+          false,
+          false,
+          handleLocalizationConfig,
+          resolve
+        );
+      }
+    });
+  };
+
+  var getLocalization = function() {
+    if (window.DFW.loadAllConfigs) {
+      let configFileNames = [];
+      if (pseudoLocalFlag != null && pseudoLocalFlag != "null" && pseudoLocalFlag != "" && pseudoLocalFlag != "loc") {
+        configFileNames = [
+          `config_${window.DFW.PortalCd}_${pseudoLocalFlag}.json`,
+          `config_${window.DFW.PortalCd}_letr_${pseudoLocalFlag}.json`,
+        ];
+      } else {
+        configFileNames = [
+          `config_${window.DFW.PortalCd}.json`,
+          `config_${window.DFW.PortalCd}_letr.json`,
+        ]
+      }
+
+      if(window.DFW.PortalCd === 'rtl'){
+        configFileNames = configFileNames.filter(configFileName => !configFileName.includes('_letr'));
+      }
+      
+      let outputPromiseArr = [];
+      for(let i = 0; i<configFileNames.length ; i++){
+        let configFileName = configFileNames[i];
+        window.DFW.isLetterConfig = configFileName.includes('_letr');
+        outputPromiseArr.push(loadConfig(configFileName));
+      }
+      return outputPromiseArr;
+    } else {
+      let configFileName = "";
+      if (window.DFW.docType == window.DFW.DocType.Letter || window.location.href.includes("build-letter")) {
+        if (pseudoLocalFlag != null && pseudoLocalFlag != "null" && pseudoLocalFlag != "" && pseudoLocalFlag != "loc") {
+          configFileName = `config_${window.DFW.PortalCd}_letr_${pseudoLocalFlag}.json`;
+        } else {
+        configFileName = `config_${window.DFW.PortalCd}_letr.json`;
+        }
+      } else if (pseudoLocalFlag != null && pseudoLocalFlag != "null" && pseudoLocalFlag != "" && pseudoLocalFlag != "loc") {
+        configFileName = `config_${window.DFW.PortalCd}_${pseudoLocalFlag}.json`;
+      } else {
+        let hostname = window.location.hostname;
+        let isSecondaryDomain =  /(livecareer|livekarriere).(se|nl|dk)/.test(hostname);
+        configFileName = `config_${window.DFW.PortalCd}${isSecondaryDomain ? '_new' : ''}.json`;
+      }
+      return [loadConfig(configFileName)];
+    }
+  };
+
+  /* Experiment conduction functions start */
+  const SetUserExperiments = (data) => {
+    if (Array.isArray(data)) {
+      window.RTN = window.RTN || {};
+      window.RTN.UserExperiments = data;
+    }
+  };
+  
+ const SetLayerId = (data) => {
+    if (data) {
+      window.RTN = window.RTN || {};
+      window.RTN.LayerId = data;
+    }
+  };
+
+  function loadExperimentScripts(hasDtrt) {
+    //do not load scripts if DTRT is enabled
+    return new Promise(function (resolve, reject) {    
+      if(!hasDtrt && window.DFW.loadAllConfigs && window.DFW.letterConfig && window.DFW.letterConfig.frontEndExpList){
+        let frontEndExpList = window.DFW.Config.frontEndExpList || [];
+        //merging both resume and cover letter experiments
+        window.DFW.letterConfig.frontEndExpList = window.DFW.letterConfig.frontEndExpList.map(exp => ({...exp, userStageID: window.DFW.letterConfig.userStageID}));
+        frontEndExpList.push(...window.DFW.letterConfig.frontEndExpList);
+        window.DFW.Config.frontEndExpList = frontEndExpList;
+      }    
+      if (!hasDtrt && window.DFW.Config.frontEndExpList && window.DFW.Config.frontEndExpList.length || window.DFW.Config.forceFecthExpList) {
+        if (window.DFW.Config.experimentSPAJSUrl) {
+          loadScript(window.DFW.Config.experimentSPAJSUrl);
+        }
+        if (window.DFW.Config.profileExpJSUrl) {
+          loadScript(window.DFW.Config.profileExpJSUrl);
+        }
+        let userExperiments = window.RTN && window.RTN.UserExperiments;
+        if (Array.isArray(userExperiments) && window.RTN.LayerId) {
+          resolve();
+        } else {
+          const configUrl =
+            window.DFW.Config.baseApiUrlV3 +
+            "users/" +
+            window.DFW.userId +
+            "/experiments?portalCD=" +
+            window.DFW.Config.portalCd +
+            "&status=all";
+            window.DFW.userId ? fetch(configUrl, {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          })
+            .then((response) => response.json())
+            .then((res) => {
+              if (
+                res &&
+                res.statusCode == "400" &&
+                res.errorMessage &&
+                res.errorMessage.toLowerCase() ==
+                  "This user has already been assigned a layer of some different portal.".toLowerCase()
+              ) {
+                SetUserExperiments([]);
+                resolve();
+              }
+              if (res && res.experiments && res.layer) {
+                SetUserExperiments(res.experiments);
+                SetLayerId(res.layer);
+                resolve();
+              }
+            }) : 
+             SetUserExperiments([]);
+             resolve();
+        }
+      } else {
+        resolve();
+      }
+    });
+  }
+
+  const initSPA = () => {
+    if (
+      window.Profile &&
+      window.DFW.userId &&
+      window.DFW.userRole &&
+      window.DFW.countryCd
+    ) {
+      window.Profile.Init(
+        window.DFW.userId,
+        window.RTN.LayerId,
+        window.DFW.userRole,
+        window.DFW.countryCd,
+        GetDeviceTypeUsingUserAgent()
+      );
+    }
+  };
+
+  function conductExperimentPromise(hasDtrt, conductExperiment) {
+    //do not conduct exp if DTRT is enabled
+    return new Promise(function (resolve, reject) {
+      if (!hasDtrt && window.DFW.Config && window.DFW.Config.frontEndExpList && window.DFW.Config.frontEndExpList.length && conductExperiment) {
+        const interval = setInterval(() => {
+          //added interval since window.Profile is not available immediately
+          if (window !== undefined && window.Profile) {
+            initSPA();
+            if (localStorage.getItem("UserProfile")) {
+              window.Profile.UpdateLoginStatus(true);
+            }
+            conductSPAExperiment();
+            clearInterval(interval);
+            resolve();
+          }
+        }, 500);
+      } else {
+        resolve();
+      }
+    });
+  }
+
+  const getSPAExpObj = (obj, stageId) => {
+    let expObj = {
+      ExprId : obj.id,
+      StageID : obj.userStageID || stageId,
+      IsBackend: obj.IsBackend,
+      Country: obj.Country,
+      Device: obj.Device,
+      conductforguestusers: obj.conductforguestusers,
+      isRCExperiment: obj.isRCExperiment,
+      PremiumStatus: obj.PremiumStatus,
+      updateUserStage: obj.updateUserStage,
+      variantDetails: obj.variantDetails,
+      exprName: obj.name,
+    };
+    return expObj;
+  };
+
+  const CheckIfExperimentConducted = (
+    userExperiments,
+    experimentTobeChecked
+  ) => {
+    if (Array.isArray(userExperiments)) {
+      let index = userExperiments.findIndex(
+        (exp) => exp.experiment_uid == experimentTobeChecked
+      );
+      return index > -1;
+    }
+  };
+
+  const handleExperimentVariant = (response) => {
+    let variant = response;
+    try {
+      const parsedResponse = JSON.parse(response);
+      if (typeof parsedResponse == 'object' && parsedResponse.data && parsedResponse.data.variant) {
+        variant = parsedResponse.data.variant;
+      } else {
+        variant = response;
+      }
+    } catch (err) {
+      // log err
+    }
+    return variant;
+  };
+
+  const conductSPAExperiment = () => {
+    let expObjArr = window.DFW.Config.frontEndExpList.map((obj) =>
+    {
+      let disableFreeCountryExperiments = window.DFW.Config.disableFreeCountryExperiments || window.DFW.disableFreeCountryExperiments
+      let enableFreeCountries = window.DFW.Config.freeDownloadUserCountries || window.DFW.enableFreeCountries;
+      if (disableFreeCountryExperiments 
+        && disableFreeCountryExperiments.indexOf(obj.id) >= 0
+        && enableFreeCountries && isFreeDownloadUser()) {
+        return null;
+      }
+      return getSPAExpObj(obj, window.DFW.Config.userStageID);
+    }
+    );
+    expObjArr.forEach((expObj) => {
+      if (
+        expObj &&
+        window.RTN &&
+        window.RTN.UserExperiments &&
+        !CheckIfExperimentConducted(window.RTN.UserExperiments, expObj.ExprId)
+      ) {
+       
+        if (expObj.ExprId === window.DFW.Config.boldProPublishFlowDesktopExpId || expObj.ExprId === window.DFW.Config.boldProPublishFlowMcbExpId) {
+          const hasPublishedProfile = window.DFW.isWebsitePublished;
+          const hasUnpublishedProfile = window.DFW.profileData && window.DFW.profileData.some(el => el.publishStatusCd === "UNPB");
+          if (hasPublishedProfile || hasUnpublishedProfile) {
+            return; 
+          }
+        }
+        
+        window.Profile.ConductExperiment(expObj, function (response) {
+          const variant = handleExperimentVariant(response);
+          if (variant > 0) {
+            window.RTN.UserExperiments.push({
+              experiment_uid: expObj.ExprId,
+              variant: variant,
+            });
+          }
+        });
+      }
+    });
+  };
+
+  const conductCvCheckExperiment = async () => {
+    return new Promise((resolve, reject) => {
+      if(!window.DFW.Config.cvCheckExp) resolve(null);
+      let expObj = getSPAExpObj(window.DFW.Config.cvCheckExp, window.DFW.Config.userStageID);
+      if (
+        window.RTN && 
+        window.RTN.UserExperiments &&
+        window.RTN.LayerId &&
+        !CheckIfExperimentConducted(window.RTN.UserExperiments, expObj.ExprId)
+      ) {
+        let errorVar = window.Profile.ConductExperiment(expObj, function (response) {
+          try {
+            const variant = handleExperimentVariant(response);
+            if (variant > 0) {
+              window.RTN.UserExperiments.push({
+                experiment_uid: expObj.ExprId,
+                variant: variant,
+              });
+              resolve(variant);
+            }
+            else {
+              resolve(null);
+            }
+          } catch (error) {
+            reject(error);
+          }
+        });
+        if(!errorVar) {
+          resolve(errorVar);
+        }
+      } else {
+        resolve(getUserExperimentVariant(expObj.ExprId));
+      }
+    });
+  };
+
+  /* Experiment conduction functions end */
+
+  function getPromises() {
+    const promises = [];
+    promises.push(
+      new Promise(function (resolve) {
+          callAjax(
+            window.DFW.Baseurl + "signin/accounts/v4/getclaims",
+            "POST",
+            false,
+            true,
+            handleClaims,
+            resolve
+          );
+      })
+    );
+    promises.push(
+      new Promise(function (resolve) {
+        if (
+          window.DFW.sessionStorageData &&
+          window.DFW.sessionStorageData.features
+        ) {
+          setFeatures(window.DFW.sessionStorageData.features);
+          resolve && resolve(true);
+        } else {
+          const url =
+            window.DFW.Baseurl +
+            "eb/api/v1/config/features/" +
+            window.DFW.Config.portalCd;
+          callAjax(url, "GET", false, true, function (result) {
+            if (result) {
+              let res = JSON.parse(result);
+              setFeatures(res);
+              resolve && resolve(true);
+            }
+          });
+        }
+      })
+    );
+    promises.push(
+      new Promise(function (resolve) {
+        if (
+          window.DFW.sessionStorageData &&
+          window.DFW.sessionStorageData.userPreferences
+        ) {
+          handlePreferences(
+            window.DFW.sessionStorageData.userPreferences,
+            "",
+            true
+          );
+          resolve && resolve(true);
+        } else {
+          window.DFW.userId ? callAjax(
+            window.DFW.Baseurl +
+              "eb/api/v1/userpreferences/" +
+              window.DFW.userId +
+              "?" +
+              encodeURI(document.referrer) +
+              "&cookieEnabled=" +
+              navigator.cookieEnabled,
+            "GET",
+            false,
+            true,
+            handlePreferences,
+            resolve
+          ) : resolve && resolve(true);
+        }
+      })
+    );
+    return promises;
+  }
+
+  function getTestCountry(country) {
+    let testCountry = readCookie("testcountry");
+    if (testCountry) {
+      return testCountry;
+    }
+    let urlParams = new URLSearchParams(window.location.search);
+    testCountry = urlParams.get("testcountry");
+    if (testCountry) {
+      setCookie("testcountry", testCountry, 1);
+      return testCountry;
+    }
+    return country;
+  };
+
+  function isFreeDownloadUser() {
+    const countryCodeGeo = getTestCountry(window.RTN.CountryClaims?.countryCodeGeo || window.DFW.countryCd);
+    const isZtyUKUser = window.DFW.Config?.checkZtyUK && Array.isArray(window.DFW.UserPreferences) && window.DFW.UserPreferences.some((userpref) => userpref.code === "ZTUK");
+    if(window.DFW.Config.freeDownloadCountries){
+      return window.DFW.Config?.freeDownloadCountries && window.DFW.Config?.freeDownloadCountries.includes(countryCodeGeo) && !isZtyUKUser && window.DFW.docType != window.DFW.DocType.Letter;
+    } else {
+      let enableFreeCountries = (window.DFW.Config.freeDownloadUserCountries && window.DFW.Config.freeDownloadUserCountries.includes(countryCodeGeo)) || window.DFW.enableFreeCountries
+      return enableFreeCountries && window.DFW.docType != window.DFW.DocType.Letter;
+    }
+  };
+
+  var getExperimentsPromise = function (userID, getExperimentList) {
+    const updatedDFWConfig = window.DFW.loadAllConfigs ? {...window.DFW.letterConfig, ...window.DFW.Config} : window.DFW.Config;
+    return new Promise(function (resolve, reject) {
+      if (window.DFW.viewVariation || (!window.DFW.loadAllConfigs && updatedDFWConfig.disbaleGetExperiment) || getExperimentList) {
+        resolve(true);
+      }
+      else if (window.RTN.UserExperiments) {
+        const isUserInEcomNiftExp = updatedDFWConfig.ecomNiftRewardExpId && (getUserExperimentVariant(updatedDFWConfig.ecomNiftRewardExpId) == 3 || getUserExperimentVariant(updatedDFWConfig.ecomNiftRewardExpId) == 6);
+        window.DFW.isDFBoldProAdExp = updatedDFWConfig.boldProDFAdExp && getUserExperimentVariant(updatedDFWConfig.boldProDFAdExp) > 2;
+        window.DFW.DF_Exp_AdSlot = updatedDFWConfig.boldProDFAdExp && getUserExperimentVariant(updatedDFWConfig.boldProDFAdExp);
+        window.DFW.isResumeCheckDFAdExp = updatedDFWConfig.resumeCheckDFAdExp && getUserExperimentVariant(updatedDFWConfig.resumeCheckDFAdExp) > 2;
+        window.DFW.downloadFunnelV2ExpVariant = updatedDFWConfig.downloadFunnelV2Exp && getUserExperimentVariant(updatedDFWConfig.downloadFunnelV2Exp);
+        window.DFW.boldProfileDFAdExpVariant = updatedDFWConfig.boldProfileDFAdExp && getUserExperimentVariant(updatedDFWConfig.boldProfileDFAdExp);
+        window.DFW.mobileDownloadFunnelV1ExpVariant=updatedDFWConfig.mobileDownloadFunnelExpV1 && getUserExperimentVariant(updatedDFWConfig.mobileDownloadFunnelExpV1);
+        window.DFW.mobileDownloadFunnelV1Exp=updatedDFWConfig.mobileDownloadFunnelExpV1 && getUserExperimentVariant(updatedDFWConfig.mobileDownloadFunnelExpV1)>2;
+        window.DFW.isFullPageDFExp = updatedDFWConfig.fullPageDFExp && getUserExperimentVariant(updatedDFWConfig.fullPageDFExp) > 2;
+        window.DFW.fullPageDFExpVariant = updatedDFWConfig.fullPageDFExp && getUserExperimentVariant(updatedDFWConfig.fullPageDFExp);
+        window.DFW.isRemoveDOCXExp = updatedDFWConfig.removeDOCXExpId && getUserExperimentVariant(updatedDFWConfig.removeDOCXExpId) > 2;
+        window.DFW.boldProOptInCopyExpVariant = updatedDFWConfig.boldProOptInCopyExp && getUserExperimentVariant(updatedDFWConfig.boldProOptInCopyExp);
+        window.DFW.isFRROneClickExp = updatedDFWConfig.fRROneClickExp && getUserExperimentVariant(updatedDFWConfig.fRROneClickExp) > 2;
+        window.DFW.fRROneClickExpVariant = updatedDFWConfig.fRROneClickExp && getUserExperimentVariant(updatedDFWConfig.fRROneClickExp);
+        window.DFW.resumeLinkExpVariant = updatedDFWConfig.resumeLinkExpId && getUserExperimentVariant(updatedDFWConfig.resumeLinkExpId);
+        window.DFW.multiChoiceFrontExpVariant = updatedDFWConfig.multiChoiceFrontExpId && getUserExperimentVariant(updatedDFWConfig.multiChoiceFrontExpId);
+        window.DFW.landingPageExpVariant = updatedDFWConfig.landingPageExpId && getUserExperimentVariant(updatedDFWConfig.landingPageExpId);
+        window.DFW.plainTxtOptExpVariant = updatedDFWConfig.plainTxtOptExpId && getUserExperimentVariant(updatedDFWConfig.plainTxtOptExpId);
+        window.DFW.optimizationExpCVRVariant = updatedDFWConfig.optimizationCvrExpId && getUserExperimentVariant(updatedDFWConfig.optimizationCvrExpId);
+        window.DFW.isEcomUpSellExp = updatedDFWConfig.ecomUpSellExpId && getUserExperimentVariant(updatedDFWConfig.ecomUpSellExpId);
+        window.DFW.docEmailDownloadLink = updatedDFWConfig.emailDocExpId && getUserExperimentVariant(updatedDFWConfig.emailDocExpId) > 2;
+        window.DFW.enableFunnelOptimization = window.DFW.ScreenName === 'dashboard' && (updatedDFWConfig.enableDFNLOptimization || (updatedDFWConfig.funnelOptimizationExpId && getUserExperimentVariant(updatedDFWConfig.funnelOptimizationExpId) > 2)) && !(window.DFW.Config.disableOptimizationExperimentForCLMobile && window.DFW.isCLMobileFlow);
+        window.DFW.isGenerateClAdslotMobileExp = updatedDFWConfig.generateClAdSlotMobileExpId && getUserExperimentVariant(updatedDFWConfig.generateClAdSlotMobileExpId) > 2;
+        window.DFW.isBoldProOptimizationExp = updatedDFWConfig.boldProOptimizationExpId && getUserExperimentVariant(updatedDFWConfig.boldProOptimizationExpId);
+        window.DFW.isRWZFitToPageExp = (updatedDFWConfig.rwzFitToPageExp && getUserExperimentVariant(updatedDFWConfig.rwzFitToPageExp) > 2) || (updatedDFWConfig.shortenRSMContentExp && getUserExperimentVariant(updatedDFWConfig.shortenRSMContentExp) == 4 || getUserExperimentVariant(updatedDFWConfig.shortenRSMContentExp) == 6);
+        window.DFW.rwzFitToPageMobExp = updatedDFWConfig.rwzFitToPageMobExp && getUserExperimentVariant(updatedDFWConfig.rwzFitToPageMobExp) > 2;
+        window.DFW.isELTrebateTestExpVariant = updatedDFWConfig.eltRebateTestExpId && getUserExperimentVariant(updatedDFWConfig.eltRebateTestExpId);
+        window.DFW.showEcomNiftChanges = isUserInEcomNiftExp;
+        window.DFW.isBoldProPublishFlowExp = updatedDFWConfig.boldProPublishFlowDesktopExpId && Number(getUserExperimentVariant(updatedDFWConfig.boldProPublishFlowDesktopExpId)) > 2;
+        window.DFW.landingRecJobsExpVariant = updatedDFWConfig.landingRecJobsExpId && getUserExperimentVariant(updatedDFWConfig.landingRecJobsExpId);
+        window.DFW.boldProPublishFlowExpVariant = window.DFW.isBoldProPublishFlowExp && Number(getUserExperimentVariant(updatedDFWConfig.boldProPublishFlowDesktopExpId));
+        window.DFW.isBoldProPublishFlowMcbExp = updatedDFWConfig.boldProPublishFlowMcbExpId && Number(getUserExperimentVariant(updatedDFWConfig.boldProPublishFlowMcbExpId)) > 2;
+        window.DFW.boldProPublishFlowMcbExpVariant = window.DFW.isBoldProPublishFlowMcbExp && Number(getUserExperimentVariant(updatedDFWConfig.boldProPublishFlowMcbExpId));
+        window.DFW.boldProPublishExpV2 = updatedDFWConfig.boldProPublishV2DesktopExpId && Number(getUserExperimentVariant(updatedDFWConfig.boldProPublishV2DesktopExpId)) > 2;
+         window.DFW.boldProPublishExpV2Variant = window.DFW.boldProPublishExpV2 && Number(getUserExperimentVariant(updatedDFWConfig.boldProPublishV2DesktopExpId));
+        window.DFW.techConnectedExp = window.DFW.ScreenName === 'dashboard' && ((updatedDFWConfig.techConnectedExpId && getUserExperimentVariant(updatedDFWConfig.techConnectedExpId) > 2) || updatedDFWConfig.isTechConnectedThemeBaselined);
+        window.DFW.showParityExp = updatedDFWConfig.ParityChangesCVRExpId && getUserExperimentVariant(updatedDFWConfig.ParityChangesCVRExpId) > 2 || updatedDFWConfig.ParityChangesRC1ExpId && getUserExperimentVariant(updatedDFWConfig.ParityChangesRC1ExpId) > 2;
+        window.DFW.mergeVariablesExp = [];
+        if (updatedDFWConfig.mergeVariablesExpList && Array.isArray(updatedDFWConfig.mergeVariablesExpList) && updatedDFWConfig.mergeVariablesExpList.length) {    
+          updatedDFWConfig.mergeVariablesExpList.forEach(exp => {
+            const variant = getUserExperimentVariant(exp.id);
+            if (variant > 0 && exp.variantDetails && exp.variantDetails[variant]) {
+              window.DFW.mergeVariablesExp.push({
+                optionName: exp.name,
+                optionValue: exp.variantDetails[variant]
+              });
+            }
+          });
+        }
+        
+        
+
+        if (updatedDFWConfig.isResumeCheckDFAdExpBaselined || window.DFW.isResumeCheckDFAdExp) {
+          window.DFW.resumeCheckDFAdExpVariant = updatedDFWConfig.isResumeCheckDFAdExpBaselined ? 6 : getUserExperimentVariant(updatedDFWConfig.resumeCheckDFAdExp); //baseline variant for MPR Resume Check DF Adslot
+          resolve(true);
+        }
+        else {
+          resolve(true);
+        }
+      }
+      else {
+        callAjax(
+          window.DFW.Baseurl +
+          'eb/api/v1/users/' + userID + '/experiments?status=all',
+          "GET",
+          false,
+          true,
+          function (data) {
+            if (data) {
+              window.RTN.UserExperiments = typeof data === 'object' ? data : JSON.parse(data);
+              const isUserInEcomNiftExp = updatedDFWConfig.ecomNiftRewardExpId && (getUserExperimentVariant(updatedDFWConfig.ecomNiftRewardExpId) == 3 || getUserExperimentVariant(updatedDFWConfig.ecomNiftRewardExpId) == 6);
+              window.DFW.isDFBoldProAdExp = updatedDFWConfig.boldProDFAdExp && getUserExperimentVariant(updatedDFWConfig.boldProDFAdExp) > 2;
+              window.DFW.DF_Exp_AdSlot = updatedDFWConfig.boldProDFAdExp && getUserExperimentVariant(updatedDFWConfig.boldProDFAdExp);
+              window.DFW.isResumeCheckDFAdExp = updatedDFWConfig.resumeCheckDFAdExp && getUserExperimentVariant(updatedDFWConfig.resumeCheckDFAdExp) > 2;
+              window.DFW.downloadFunnelV2ExpVariant = updatedDFWConfig.downloadFunnelV2Exp && getUserExperimentVariant(updatedDFWConfig.downloadFunnelV2Exp);
+              window.DFW.boldProfileDFAdExpVariant = updatedDFWConfig.boldProfileDFAdExp && getUserExperimentVariant(updatedDFWConfig.boldProfileDFAdExp);
+              window.DFW.mobileDownloadFunnelV1ExpVariant=updatedDFWConfig.mobileDownloadFunnelExpV1 && getUserExperimentVariant(updatedDFWConfig.mobileDownloadFunnelExpV1);
+              window.DFW.mobileDownloadFunnelV1Exp=updatedDFWConfig.mobileDownloadFunnelExpV1 && getUserExperimentVariant(updatedDFWConfig.mobileDownloadFunnelExpV1)>2;
+              window.DFW.isFullPageDFExp = updatedDFWConfig.fullPageDFExp && getUserExperimentVariant(updatedDFWConfig.fullPageDFExp) > 2;
+              window.DFW.fullPageDFExpVariant = updatedDFWConfig.fullPageDFExp && getUserExperimentVariant(updatedDFWConfig.fullPageDFExp);
+              window.DFW.isRemoveDOCXExp = updatedDFWConfig.removeDOCXExpId && getUserExperimentVariant(updatedDFWConfig.removeDOCXExpId) > 2;
+              window.DFW.boldProOptInCopyExpVariant = updatedDFWConfig.boldProOptInCopyExp && getUserExperimentVariant(updatedDFWConfig.boldProOptInCopyExp);
+              window.DFW.isFRROneClickExp = updatedDFWConfig.fRROneClickExp && getUserExperimentVariant(updatedDFWConfig.fRROneClickExp) > 2;
+              window.DFW.fRROneClickExpVariant = updatedDFWConfig.fRROneClickExp && getUserExperimentVariant(updatedDFWConfig.fRROneClickExp);
+              window.DFW.resumeLinkExpVariant = updatedDFWConfig.resumeLinkExpId && getUserExperimentVariant(updatedDFWConfig.resumeLinkExpId);
+              window.DFW.multiChoiceFrontExpVariant = updatedDFWConfig.multiChoiceFrontExpId && getUserExperimentVariant(updatedDFWConfig.multiChoiceFrontExpId);
+              window.DFW.landingPageExpVariant = updatedDFWConfig.landingPageExpId && getUserExperimentVariant(updatedDFWConfig.landingPageExpId);
+              window.DFW.plainTxtOptExpVariant = updatedDFWConfig.plainTxtOptExpId && getUserExperimentVariant(updatedDFWConfig.plainTxtOptExpId);
+              window.DFW.optimizationExpCVRVariant = updatedDFWConfig.optimizationCvrExpId && getUserExperimentVariant(updatedDFWConfig.optimizationCvrExpId);
+              window.DFW.isEcomUpSellExp = updatedDFWConfig.ecomUpSellExpId && getUserExperimentVariant(updatedDFWConfig.ecomUpSellExpId);
+              window.DFW.docEmailDownloadLink = updatedDFWConfig.emailDocExpId && getUserExperimentVariant(updatedDFWConfig.emailDocExpId) > 2;
+              window.DFW.isGenerateClAdslotMobileExp = updatedDFWConfig.generateClAdSlotMobileExpId && getUserExperimentVariant(updatedDFWConfig.generateClAdSlotMobileExpId) > 2;
+              window.DFW.isBoldProOptimizationExp = updatedDFWConfig.boldProOptimizationExpId && getUserExperimentVariant(updatedDFWConfig.boldProOptimizationExpId);
+              window.DFW.isRWZFitToPageExp = (updatedDFWConfig.rwzFitToPageExp && getUserExperimentVariant(updatedDFWConfig.rwzFitToPageExp) > 2) || (updatedDFWConfig.shortenRSMContentExp && getUserExperimentVariant(updatedDFWConfig.shortenRSMContentExp) == 4 || getUserExperimentVariant(updatedDFWConfig.shortenRSMContentExp) == 6);
+              window.DFW.rwzFitToPageMobExp = updatedDFWConfig.rwzFitToPageMobExp && getUserExperimentVariant(updatedDFWConfig.rwzFitToPageMobExp) > 2;
+              window.DFW.enableFunnelOptimization = window.DFW.ScreenName === 'dashboard' && (updatedDFWConfig.enableDFNLOptimization || (updatedDFWConfig.funnelOptimizationExpId && getUserExperimentVariant(updatedDFWConfig.funnelOptimizationExpId) > 2)) && !(window.DFW.Config.disableOptimizationExperimentForCLMobile && window.DFW.isCLMobileFlow);
+              window.DFW.showEcomNiftChanges = isUserInEcomNiftExp;
+              window.DFW.isBoldProPublishFlowExp = updatedDFWConfig.boldProPublishFlowDesktopExpId && getUserExperimentVariant(updatedDFWConfig.boldProPublishFlowDesktopExpId) > 2;
+              window.DFW.landingRecJobsExpVariant = updatedDFWConfig.landingRecJobsExpId && getUserExperimentVariant(updatedDFWConfig.landingRecJobsExpId);
+              window.DFW.boldProPublishFlowExpVariant = window.DFW.isBoldProPublishFlowExp && getUserExperimentVariant(updatedDFWConfig.boldProPublishFlowDesktopExpId);
+              window.DFW.isBoldProPublishFlowMcbExp = updatedDFWConfig.boldProPublishFlowMcbExpId && getUserExperimentVariant(updatedDFWConfig.boldProPublishFlowMcbExpId) > 2;
+              window.DFW.boldProPublishFlowMcbExpVariant = window.DFW.isBoldProPublishFlowMcbExp && getUserExperimentVariant(updatedDFWConfig.boldProPublishFlowMcbExpId);
+              window.DFW.boldProPublishExpV2 = updatedDFWConfig.boldProPublishV2DesktopExpId && Number(getUserExperimentVariant(updatedDFWConfig.boldProPublishV2DesktopExpId)) > 2;
+              window.DFW.boldProPublishExpV2Variant = window.DFW.boldProPublishExpV2 && Number(getUserExperimentVariant(updatedDFWConfig.boldProPublishV2DesktopExpId));
+              window.DFW.showParityExp = updatedDFWConfig.ParityChangesCVRExpId && getUserExperimentVariant(updatedDFWConfig.ParityChangesCVRExpId) > 2 || updatedDFWConfig.ParityChangesRC1ExpId && getUserExperimentVariant(updatedDFWConfig.ParityChangesRC1ExpId) > 2;
+              window.DFW.techConnectedExp = window.DFW.ScreenName === 'dashboard' && ((updatedDFWConfig.techConnectedExpId && getUserExperimentVariant(updatedDFWConfig.techConnectedExpId) > 2) || updatedDFWConfig.isTechConnectedThemeBaselined);
+
+              if (updatedDFWConfig.isResumeCheckDFAdExpBaselined || window.DFW.isResumeCheckDFAdExp) {
+                window.DFW.resumeCheckDFAdExpVariant = updatedDFWConfig.isResumeCheckDFAdExpBaselined ? 6 : getUserExperimentVariant(updatedDFWConfig.resumeCheckDFAdExp); //baseline variant for MPR Resume Check DF Adslot
+                resolve && resolve(true);
+              }
+              else {
+                resolve && resolve(true);
+              }
+            }
+            else {
+              resolve && resolve(true);
+            }
+          }
+        );
+      }
+      if (window.DFW.fullPageDFExpVariant == 3 && updatedDFWConfig.fullPageDFwithModalpopups) {
+        window.DFW.fullPageDFExpVariant = 4;
+      }
+    });
+  }
+
+  
+  var isFreeRsmReviewAvailable = function (apiUrl, userId, deviceType) {
+    return new Promise(function (resolve, reject) {
+      if (window.DFW.Config.isNowPortal || window.DFW.Config.isNoFRRAdBaslined ) {
+        if (window.DFW.sessionStorageData && window.DFW.sessionStorageData.reviewPurchaseStatus){
+          let purchaseStatus = window.DFW.sessionStorageData.reviewPurchaseStatus;
+          const isFRRAvail = purchaseStatus && !purchaseStatus.is_purchased;
+          window.DFW.isFreeReviewAvailable = isFRRAvail;
+          resolve && resolve(true);
+        } else {
+          apiUrl && callAjax(
+            apiUrl +
+            "payments/" +
+            userId +
+            "/DRR/purchased-upsell?subscriptionStatus=ACTV&deviceType=" +
+            deviceType,
+            "GET",
+            false,
+            true,
+            function (result) {
+              try {
+                var data = JSON.parse(result);
+                if (data) {          
+                  const isFRRAvail = data && !data.is_purchased;
+                  window.DFW.isFreeReviewAvailable = isFRRAvail;         
+                  resolve && resolve(true);
+                } else {
+                  reject && reject();
+                }
+              } catch(err) {
+                reject && reject();
+              }            
+            }
+          );
+        }
+      } else {
+        window.DFW.isFreeReviewAvailable = false;
+      }
+    });
+  };
+
+  var isWebsiteCreated = function (apiUrl, userId) {
+    return new Promise(function (resolve, reject) {
+      if((window.DFW.Config.isIntl || window.DFW.Config.isFXJ || window.DFW.Config.isRLB || window.DFW.Config.isMON) && !window.DFW.isWebsitePublishedCallRequired){
+        resolve && resolve(true);
+      }
+      
+      else if (window.DFW.boldProfileDFAdExpVariant > 2 ||  window.DFW.Config.baselineFullscreenDF || window.DFW.Config.isNowPortal || window.DFW.Config.getProfileData || window.DFW.isFullScreenIntlDfnl|| window.DFW.isBaselineBoldProAdSlot || (window.DFW.isCLFullPageFeatureEnabled && window.DFW.docType == window.DFW.DocType.Letter)) {
+        callAjax(
+          apiUrl + 'users/' + userId + '/websites?isDocumentRequired=false',
+          "GET",
+          false,
+          true,
+          function (result) {
+            var data = JSON.parse(result);
+            if (data) {
+              if(data && data.length > 0){
+                let isDraftMode = data.length == 1 && data.some(el => el.publishStatusCd === "DRFT");
+                if ((window.DFW.Config.showOptInDrftMode || window.DFW.showIntlOptInDrftMode) && isDraftMode) {
+                  window.DFW.isWebsiteCreated = false;
+                }
+                else {
+                  window.DFW.isWebsiteCreated = true;
+                }
+                const isPublished = data.some(el => el.publishStatusCd === "PUBS");
+                window.DFW.isWebsitePublished=isPublished
+              }else{
+                window.DFW.isWebsiteCreated = false;
+              }
+              
+              window.DFW.profileData = data;
+              resolve && resolve(true);
+            } else {
+              reject && reject();
+            }
+          }
+        );
+      }
+      else {
+        window.DFW.isWebsiteCreated = false;
+      }
+    })
+  };
+
+  var getCoverLetterCountPromise = function (userId) {
+    return new Promise(function (resolve, reject) {
+      if(window.DFW.Config.isNoRCFeatureExp || window.DFW.Config.isNoFRRAdBaslined){
+        if (window.DFW.sessionStorageData && window.DFW.sessionStorageData.hasOwnProperty("letterCount")) {
+          window.DFW.coverLetterCount = window.DFW.sessionStorageData.letterCount;
+        } else {
+          let reqPayload = {
+            userId,
+            portalId: window.DFW.Config.portalId,
+            documentType: "letr",
+            apiUrl: window.DFW.Baseurl,
+          };
+          const url = `${reqPayload.apiUrl}eb/api/v1/documents/getdocumentcount?userId=${reqPayload.userId}&portalId=${reqPayload.portalId}&docTypeCd=${reqPayload.documentType}`;
+          reqPayload.userId ? callAjax(url, "GET", false, true, function (result) {
+            if (!isNaN(result)) {
+              window.DFW.coverLetterCount = result;
+            }
+          }) : resolve && resolve(true);
+        }
+        
+      }
+      
+    });
+  };
+
+  var getPaymentStatusPromise = function () {
+    return new Promise(function (resolve, reject) {
+      if (window.DFW.sessionStorageData && window.DFW.sessionStorageData.paymentDetails){
+        window.DFW.paymentStatus = window.DFW.sessionStorageData.paymentDetails.paymentStatus;
+      } else {
+        const url = window.DFW.Baseurl + "eb/api/v1/user/ecomflowdata?useruId=" + window.DFW.userId + "&portalId=" + window.DFW.Config.portalId;
+        window.DFW.userId ? callAjax(url, "GET", false, true, function (result) {
+          if (result) {
+            let res = JSON.parse(result);
+            window.DFW.paymentStatus = res.paymentStatus;
+          }
+        }) : resolve && resolve(true);
+      }
+    });
+  };
+
+  const loadRWZPdfDownloadWidget = function () {
+    if ((window.DFW.isRWZFitToPageExp || window.DFW.rwzFitToPageMobExp) && window.DFW.Config.rwzPdfDownloadWidgetUrl) {
+      loadScript(window.DFW.Config.rwzPdfDownloadWidgetUrl);
+    }
+  };
+
+  function checkBrowserCompatibility() {
+    window.DFW.BundleLoaded = false;
+    var objAgent = navigator.userAgent;
+    var objfullVersion = "" + parseFloat(navigator.appVersion);
+    var objOffsetVersion;
+    var legacyEditorURL;
+    if (window.location.hostname) {
+      legacyEditorURL =
+        window.location.protocol +
+        "//" +
+        window.location.hostname +
+        "/information/unsupportedbrowsers.aspx";
+    } else {
+      legacyEditorURL =
+        window.location.origin + "/information/unsupportedbrowsers.aspx";
+    }
+    // In Microsoft internet explorer
+    if ((objOffsetVersion = objAgent.indexOf("MSIE")) != -1) {
+      objfullVersion = objAgent.substring(objOffsetVersion + 5);
+      if (objfullVersion.substring(0, objfullVersion.indexOf(".")) <= 9) {
+        window.location = legacyEditorURL;
+      }
+    }
+    // In Safari
+    else if ((objOffsetVersion = objAgent.indexOf("Safari")) != -1) {
+      objfullVersion = objAgent.substring(objOffsetVersion + 7);
+      if ((objOffsetVersion = objAgent.indexOf("Version")) != -1) {
+        objfullVersion = objAgent.substring(objOffsetVersion + 8);
+        if (objfullVersion.substring(0, objfullVersion.indexOf(".")) <= 8) {
+          window.location = legacyEditorURL;
+        }
+      }
+    }
+    
+    let urlParamDisabletests = getUrlParam('disabletests');
+    let cookievalDisbaleTest = readCookie('disabletests');
+    const hasDtrt = (urlParamDisabletests == 1 || cookievalDisbaleTest == 1);
+    window.DFW.hasDtrt = hasDtrt;
+
+    Promise.all([...getLocalization(), getPromises()])
+      .then(() => loadExperimentScripts(hasDtrt))
+      .then(() => conductExperimentPromise(hasDtrt, !window.DFW.Config.isCorePortal))
+      .then(function (claims) {
+        return Promise.all([
+          getExperimentsPromise(window.DFW.userId, window.DFW.Config.isCorePortal).then(() => {
+            loadCss();
+          }),
+          isFreeRsmReviewAvailable(
+            window.DFW.Config.ecomapiPathV1,
+            window.DFW.userId,
+            GetDeviceTypeUsingUserAgent()
+          ),
+          isWebsiteCreated(window.DFW.Config.pwApiUrlV1, window.DFW.userId),
+          getCoverLetterCountPromise(window.DFW.userId),
+          getAllFeedbackToolDocComments(window.DFW.userId),
+          getPaymentStatusPromise(),
+          getAllatestDocList(window.DFW.Config.apiPathV1),
+        ]);
+      })
+      .then(function (data) {
+        // getUserPrefPromise.then(function (data) {
+        //   // any action here
+        // });
+        // isUserPremium(window.DFW.userId,window.DFW.Config.portalId,window.DFW.Config.apiPathV1);
+      })
+      .catch((err) => {});
+      return true;
+  }
+
+  window.onload = checkBrowserCompatibility();
+
+  function callAjax(
+    url,
+    method,
+    async,
+    withCredentials,
+    callback,
+    resolve,
+    data
+  ) {
+    var xmlhttp;
+    // compatible with IE7+, Firefox, Chrome, Opera, Safari
+    xmlhttp = new XMLHttpRequest();
+    xmlhttp.onload = function () {
+      if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+        if (callback)
+          if (resolve) {
+            callback(xmlhttp.responseText, resolve);
+          } else {
+            callback(xmlhttp.responseText);
+          }
+      } else if (xmlhttp.readyState == 4 && xmlhttp.status == 500) {
+        if (callback) callback("");
+      }
+    };
+    xmlhttp.open(method, url, async);
+    if (withCredentials) xmlhttp.withCredentials = true;
+
+    if (data) {
+      xmlhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+      xmlhttp.send(data);
+    } else {
+      xmlhttp.send();
+    }
+  }
+
+  function loadScript(url) {
+    return new Promise(function (resolve, reject) {
+      var script = document.createElement("script");
+      script.onload = resolve;
+      script.onerror = reject;
+      script.src = url;
+      document.getElementsByTagName("head")[0].appendChild(script);
+    });
+  }
+
+  function addLinkTag(rel, path) {
+    var _linkTag = document.createElement('link');
+    _linkTag.rel = rel;
+    _linkTag.href = path
+    if (!document.head) {
+      document.getElementsByTagName('head')[0].appendChild(_linkTag);
+    }
+    else {
+      document.head.appendChild(_linkTag);
+    }
+  };
+
+  const updateUserPref = (updatedPreference) => {
+    if(window.DFW.UserPreferences){
+      const isUserPrefExists = window.DFW.UserPreferences.find(userpref => userpref.code == updatedPreference.code);
+      if(isUserPrefExists){
+        let oldPreferences = window.DFW.UserPreferences.filter(userpref => userpref.code != updatedPreference.code)
+        window.DFW.UserPreferences = [...oldPreferences, updatedPreference];
+      } else {
+        window.DFW.UserPreferences = [
+          ...window.DFW.UserPreferences,
+          updatedPreference
+        ]
+      }      
+      isTPSurveyViewed(window.DFW.UserPreferences);
+      isTPSurveyViewed(window.DFW.UserPreferences);
+      const existingSessionStorage = window.DFW.sessionStorageData;  
+      if (existingSessionStorage) {
+        existingSessionStorage.userPreferences = window.DFW.UserPreferences;
+        sessionStorage.setItem('userinfo', JSON.stringify(existingSessionStorage));
+      }
+    }   
+    
+  }
+
+  const showBoldProPublishV2ExpChanges = () => {
+    if(window.DFW.boldProPublishExpV2 && window.DFW.isPremium){
+    const isDFCLExists = window.DFW.UserPreferences.find(userpref => userpref.code == 'DFCL' && userpref.value === 'true');
+    const isMaxVisitReached = window.DFW.UserPreferences.find(userPref => userPref.code == 'CLAD' && userPref.value == 'THRESHOLD');
+    const hasPublishedOrUnpublishedProfile = window.DFW.profileData && window.DFW.profileData.some(el => el.publishStatusCd === "PUBS" || el.publishStatusCd === "UNPB" || el.publishStatusCd === "DRFT");
+
+    if((isDFCLExists || isMaxVisitReached) && (window.DFW.profileData && hasPublishedOrUnpublishedProfile)){
+      return false;
+    } else {
+      return true;
+    }
+  }
+
+
+  }
+
+  const showBoldProPublishExpChanges = () => {
+    let showExpChanges = false;
+    let variant;
+    if((window.DFW.isBoldProPublishFlowExp || window.DFW.isBoldProPublishFlowMcbExp) && window.DFW.isPremium){
+      const isDFCLExists = window.DFW.UserPreferences.find(userpref => userpref.code == 'DFCL');
+      const isMaxVisitReached = window.DFW.UserPreferences.find(userPref => userPref.code == 'CLAD' && userPref.value == 'THRESHOLD');
+      const hasPublishedOrUnpublishedProfile = window.DFW.profileData && window.DFW.profileData.some(el => el.publishStatusCd === "PUBS" || el.publishStatusCd === "UNPB");
+      variant = window.DFW.boldProPublishFlowExpVariant || window.DFW.boldProPublishFlowMcbExpVariant;
+      if (variant === 7) {
+        showExpChanges = !isMaxVisitReached &&!isDFCLExists && (!window.DFW.profileData || !hasPublishedOrUnpublishedProfile);
+      } else {
+        showExpChanges = !window.DFW.profileData || !hasPublishedOrUnpublishedProfile;
+      }
+    }
+    if (showExpChanges && variant == 4) {
+      loadScript(window.DFW.Config.subDomainUrl + "blobcontent/pwb/template/PR1L.scPreview.bundle.js");
+    }
+    if (window.DFW.boldProPublishFlowMcbExpVariant === 5 && window.DFW.countryCd != 'US') {
+      showExpChanges = false;
+    }
+    if (showExpChanges && (variant === 5 || variant === 6)) {
+      addLinkTag("preconnect", "https://fonts.googleapis.com");
+      addLinkTag("preconnect", "https://fonts.gstatic.com");
+      addLinkTag("stylesheet", "https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400..700&display=swap");
+    }
+    return showExpChanges;
+  }
+
+  const getLandingPageExpVariant = () => {
+    if(window.DFW.docType != window.DFW.DocType.Letter) {
+      if(window.DFW.landingPageExpVariant) {
+        return window.DFW.landingPageExpVariant;
+      }
+      if(window.DFW.landingRecJobsExpVariant) {
+        return window.DFW.landingRecJobsExpVariant;
+      }
+    }
+    return -1;
+  }
+
+  function renderDownloadFunnelWidget(data) {
+    const isLetrAllConfig = window.DFW.docType == window.DFW.DocType.Letter && window.DFW.loadAllConfigs;
+    if (window.DFW.Config.frontEndExpList && window.DFW.Config.frontEndExpList.length > 0 && window.DFW.Config.isCorePortal){
+      const widgetProps = {
+        selector: window.DFW.Selector,
+        config: isLetrAllConfig ? window.DFW.letterConfig : window.DFW.Config,
+      }
+      const downloadFunnelWidgetLoader = window.OBLibDFW.default.DownloadFunnel.new(widgetProps);
+      downloadFunnelWidgetLoader.renderLoader();
+    }
+
+    if(window.DFW.isINTLRwd){
+      window.DFW.Config = { ...window.DFW.Config, ...window.DFW.Config.rwd};
+    }
+
+    function getExperimentConfig() {
+      const experiments = window.DFW.Config && window.DFW.Config.frontEndExpList;
+      if(experiments && experiments.length > 0) {
+        experiments.map(experiment => {
+          if(experiment && experiment.shouldConfigUpdate) {
+            const variant = getUserExperimentVariant(experiment.id)
+            const supportedDevices = experiment.Device.toLowerCase().split(',');
+            const variantName = experiment.hasOwnProperty("variantConfigAll") ? 'All' : variant;
+            const clientDeviceType = GetDeviceTypeUsingUserAgent().toLowerCase();
+            if(variant > 2 && supportedDevices.indexOf(clientDeviceType) != -1) {
+              if(supportedDevices.length > 1) {
+                window.DFW.Config = {...window.DFW.Config, ...experiment[`variantConfig${variantName}`][clientDeviceType]}
+              }
+              else {
+                window.DFW.Config = {...window.DFW.Config, ...experiment[`variantConfig${variantName}`]}
+              }
+            }
+          }
+        })          
+      }
+      return window.DFW.Config;
+    }
+
+    conductExperimentPromise(window.DFW.hasDtrt, window.DFW.Config.isCorePortal).then(() => {
+      getExperimentsPromise(window.DFW.userId, !window.DFW.Config.isCorePortal).then(() => {
+        // window.DFW.isPremium = true;
+        window.DFW.isModalOpen = true;
+        // window.DFW.userID = '6670c08d-be53-4778-9bd1-0379e022074d';
+        window.DFW.isSpecialUser = IsSVGEnabled(window.DFW.email, window.DFW.Config.emailDomain);
+        //window.DFW.funnelMode = window.DFW.FunnelType.Download;
+        
+        loadRWZPdfDownloadWidget()
+        if(window.DFW.Config && window.DFW.Config.portalCd && window.DFW.Config.portalCd.toUpperCase() == 'ZTY' && window.DFW.Config.isDFV2ExpBaselined && GetDeviceTypeUsingUserAgent() != 'desktop') {
+          window.DFW.Config.isDFV2ExpBaselined = false;
+        }
+        if(window.DFW.Config.isCorePortal){
+          window.DFW.disableBoldProWebsite = window.DFW.docType == window.DFW.DocType.Letter && window.DFW.isCLFullPageFeatureEnabled;
+        }
+        window.DFW.isDownloadLinkMobFeatureEnabled = window.DFW.docType != window.DFW.DocType.Letter && IsFeatureEnabled('RTMDFELN');
+        window.DFW.Config = getExperimentConfig();
+        if(window.DFW.enableFunnelOptimization || window.DFW.techConnectedExp){
+          if (window.DFW.enableFunnelOptimization) {
+            window.DFW.disableBoldProWebsite = window.DFW.Config.disableBoldProWebsite;
+            window.DFW.ResumeName = "";
+            window.DFW.isFeedbackAdScreenEnable = false;
+            window.history.pushState({}, "");
+            window.onpopstate = function () {
+              window.location.href = window.DFW.Config.dashboardUrl;
+            };
+          } else if (window.DFW.techConnectedExp) {
+            const devicetype = GetDeviceTypeUsingUserAgent();
+            if (window.DFW.Config?.techConnectedExpConf && window.DFW.Config.techConnectedExpConf[devicetype]) {
+              window.DFW.Config = { ...window.DFW.Config, ...window.DFW.Config.techConnectedExpConf[devicetype], ...window.DFW.Config.techConnectedExpConf[devicetype].rwd };
+            }
+          }
+          if(window.DFW.Config.UpdateLocalization) {
+            for(let loc in window.DFW.Config.UpdateLocalization) {
+              if(window.DFW.Config.UpdateLocalization.hasOwnProperty(loc)) {
+                let value = window.DFW.Config.UpdateLocalization[loc];
+                if(window.DFW.Localization[loc] && window.DFW.Localization[value]) {
+                  window.DFW.Localization[loc] = window.DFW.Localization[value]
+                }
+              }
+            }
+          }
+        }
+        if(window.DFW.isVistorCVCheckExperiment) {
+          window.DFW.Config.resumeCheckAdSlotMinScoreReq = 79;
+        }
+        var widgetProps;
+        if (isLetrAllConfig) {
+          widgetProps = {
+            selector: window.DFW.Selector,
+            localization: window.DFW.LetterLocalization,
+            config: window.DFW.letterConfig,
+            userProps: {
+              userId: window.DFW.userId,
+              isPremium: window.DFW.isPremium,
+              funnelMode: window.DFW.funnelMode ? window.DFW.funnelMode : window.DFW.FunnelType.Download,
+              email: window.DFW.emailParam ? window.DFW.emailParam : window.DFW.email,
+              downloadFunnelV3Variant: window.DFW.downloadFunnelV3Variant ? window.DFW.downloadFunnelV3Variant : 1,
+              resumeGuid: window.DFW.ResumeGuid,
+              resumeName: window.DFW.ResumeName,
+              isSurveyMandatory: false,
+              userName: window.DFW.userName,
+              surveyViewed: window.DFW.SurveyViewed,
+              upsellCoverLetterViewed: window.DFW.UpsellCoverLetterViewed,
+              isTrustPilotSurveyViewed: window.DFW.isTrustPilotSurveyViewed,
+              screenName: window.DFW.ScreenName,
+              templateName: window.DFW.TemplateName,
+              isAgent: window.DFW.isAgent,
+              productCD: window.DFW.productCD,
+              firstName: window.DFW.firstName,
+              lastName: window.DFW.lastName,
+              PortalCd: window.DFW.PortalCd,
+              resumeReason: window.DFW.resumeReasonOption,
+              methodOption: window.DFW.methodOption,
+              countryCd: window.DFW.countryCd,
+              isDownloadLinkMobFeatureEnabled: GetDeviceTypeUsingUserAgent() == 'mobile' && window.DFW.isDownloadLinkMobFeatureEnabled ? true : false,
+              enableColorProgressV2: window.DFW.enableColorProgressV2,
+              docPreviewUrl: window.DFW.docPreviewUrl,
+              isNowLetter:window.DFW.PortalCd == "rna" ? true : false,
+              loadAllConfigs: window.DFW.loadAllConfigs,
+              isLetrPortal: window.DFW.Config.isLetrPortal ? true : false,
+              openFullScreenDownloadFunnel: GetDeviceTypeUsingUserAgent() == 'desktop' ?  ((window.DFW.isFullPageDFExp || window.DFW.isCLFullPageFeatureEnabled) && window.DFW.docType == window.DFW.DocType.Letter) : GetDeviceTypeUsingUserAgent() == 'tablet' ?  (window.DFW.isCLFullPageFeatureEnabled &&  window.DFW.docType == window.DFW.DocType.Letter) : false,
+              fullScreenDownloadFunnelExpVariation: (GetDeviceTypeUsingUserAgent() == 'desktop' && window.DFW.docType == window.DFW.DocType.Letter) ? window.DFW.fullPageDFExpVariant : -1,
+              isFullPageDFV2Exp: GetDeviceTypeUsingUserAgent() == 'desktop' ? !!window.DFW.Config.baselineFullPageDFV2Exp && !(window.DFW.isCLFullPageFeatureEnabled && window.DFW.docType == window.DFW.DocType.Letter) : false, 
+              letrBoldProfilePublished: window.DFW.isWebsitePublished && window.DFW.isCLFullPageFeatureEnabled,
+              isCLFullPageFeatureEnabled: window.DFW.isCLFullPageFeatureEnabled,
+              isWebsiteCreated: window.DFW.isWebsiteCreated,
+              boldProfilePublished: window.DFW.isWebsitePublished,    
+              disableBoldProWebsite: window.DFW.isCLFullPageFeatureEnabled,
+              baselineFullscreenDF: window.DFW.Config.baselineFullscreenDF, 
+              isDownloadFunnelMobileV2: GetDeviceTypeUsingUserAgent() == 'mobile' && (window.DFW.Config.isdownloadFunnelMobileBaselined || (window.DFW.letterConfig && window.DFW.letterConfig.isdownloadFunnelMobileBaselined)),
+              userPreferences: window.DFW.UserPreferences,
+              updateUserPref: updateUserPref,
+              deliveryMethod: window.DFW.deliveryMethod,
+              optimizationExpVariant: -1,
+              isContextual: window.DFW.Config.isContextual,
+              enableFunnelOptimization: window.DFW.enableFunnelOptimization,
+              boldProOptimizationExpVariant: -1,
+              profileData: window.DFW.profileData,
+              conductCvCheckExperiment: window.DFW.Config.cvCheckExp && conductCvCheckExperiment,
+              enableBuilderCVCheck: window.DFW.isVistorCVCheckExperiment,
+              techConnectedTheme: window.DFW.techConnectedExp,
+              isByPassReviewId: window.DFW.Config.ByPassReviewId
+            },
+            isModalOpen: window.DFW.isModalOpen,
+            TrackDFWWidgetEvent: TrackDFWWidgetEventCallback,
+            SetUserPref: SetUserPreference,
+            ErrorCallBack: window.DFW.ErrorCallBack,
+            SuccessCallBack: window.DFW.SuccessCallBack,
+            MobileCloseCallBack: window.DFW.MobileCloseCallBack,
+            MobileOpenCallBack: window.DFW.MobileOpenCallBack,
+            stopDownloadedEvent: window.DFW.stopDownloadedEvent,
+            stopEmailedEvent: window.DFW.stopEmailedEvent,
+            renderCount: window.DFW.renderCount++,
+            resumeId: window.DFW.ResumeGuid,
+            docType: window.DFW.DocType.Letter,
+            selectedFileType: window.DFW.selectedFileFormat || window.DFW.FileExtension.PDF,
+            colorProps: window.DFW.colorProps,
+            dimensions: window.DFW.dimensions,
+            enableQuickClose: window.DFW.enableQuickClose || window.DFW.Config.isQuickCloseEnable,
+            isPopupCentered: window.DFW.isPopupCentered,
+            customBackdropColor: window.DFW.customBackdropColor,
+            deviceType: GetDeviceTypeUsingUserAgent(),
+            FinishCallback: window.DFW.FinishCallback,
+            SocialCardCallback: window.DFW.SocialCardCallback
+          };
+        } else {
+        widgetProps= {
+          selector: window.DFW.Selector,
+          localization: window.DFW.Localization,
+          config: window.DFW.Config,
+          userProps: {
+            userId: window.DFW.userId, isPremium: window.DFW.isPremium, funnelMode: window.DFW.funnelMode ? window.DFW.funnelMode : window.DFW.FunnelType.Download, email: window.DFW.emailParam ? window.DFW.emailParam : window.DFW.email, resumeGuid: window.DFW.ResumeGuid, resumeName: window.DFW.ResumeName, isSurveyMandatory: false
+            , userName: window.DFW.userName, surveyViewed: window.DFW.SurveyViewed, isMobileBoldProEnable: window.DFW.isMobileBoldProEnable, isINTLBoldPro: window.DFW.isINTLBoldPro, allDocList: window.RTN.ResumeList, upsellCoverLetterViewed: window.DFW.UpsellCoverLetterViewed, isTrustPilotSurveyViewed: window.DFW.isTrustPilotSurveyViewed, expVariant: getBoldProAdVariant() || window.DFW.DF_Exp_Var, screenName: window.DFW.ScreenName, templateName: window.DFW.TemplateName, isAgent: window.DFW.isAgent, productCD: window.DFW.productCD,
+            firstName: window.DFW.firstName, lastName: window.DFW.lastName, PortalCd: window.DFW.PortalCd, isCvReviewAdScreenEnable: window.DFW.isCvReviewAdScreenEnable, cvReviewStatus: window.DFW.cvReviewStatus, resumeReason: window.DFW.resumeReasonOption, boldProfilePublished: window.DFW.Config.isCorePortal ? window.DFW.isWebsitePublished : (window.DFW.isWebsitePublished || !!window.DFW.disableBoldProWebsite), isDFBoldProAdExp: window.DFW.isDFBoldProAdExp, isBoldProAdV2Baselined: window.DFW.Config.isBoldProAdV2Baselined, isRsmReviewAdExp: window.DFW.isFreeReviewAvailable, bigInterviewPref: window.DFW.BigInterViewPref, isMobileDownloadFunnel: window.DFW.isMobileDownloadFunnel, methodOption: window.DFW.methodOption, resumeCheckDFAdExpVariant: window.DFW.resumeCheckDFAdExpVariant,
+            resumeCheckAdSlotMinScoreReq: window.DFW.Config.resumeCheckAdSlotMinScoreReq, countryCd: window.DFW.countryCd, resumeScore: window.DFW.resumeScore, isINTLFlow: window.DFW.isINTLFlow,
+            isBoldProAdBaselined: window.DFW.Config.isBoldProAdBaselined || false, isDFV2ExpBaselined: window.DFW.Config.isDFV2ExpBaselined || false, baselineDfnl: window.DFW.baselineDfnl, downloadFunnelV2ExpVariant: GetDeviceTypeUsingUserAgent() == 'mobile' ? '' : window.DFW.downloadFunnelV2ExpVariant, isDownloadFunnelMobileV2: GetDeviceTypeUsingUserAgent() == 'mobile' && (window.DFW.Config.isdownloadFunnelMobileBaselined || window.DFW.mobileDownloadFunnelV1Exp || window.DFW.isMobileIntlDownloadFunnel || window.DFW.Config.baselineBoldProOptMobVar) ? window.DFW.Config.isdownloadFunnelMobileBaselined || window.DFW.mobileDownloadFunnelV1Exp || window.DFW.isMobileIntlDownloadFunnel || window.DFW.Config.baselineBoldProOptMobVar : '', isMobMtNotRequired: window.DFW.isMobMtNotRequired,
+            downloadFunnelV3Variant: window.DFW.downloadFunnelV3Variant ? window.DFW.downloadFunnelV3Variant : 1, letterToCVDict: window.RDL.letterToCVDict,
+            boldProfileDFVariant: GetDeviceTypeUsingUserAgent() == 'mobile' || window.DFW.isWebsiteCreated ? -1 : window.DFW.boldProfileDFAdExpVariant,
+            isDownloadLinkMobFeatureEnabled: GetDeviceTypeUsingUserAgent() == 'mobile' && window.DFW.isDownloadLinkMobFeatureEnabled ? true : false,
+            enableColorProgressV2: window.DFW.enableColorProgressV2, docPreviewUrl: window.DFW.docPreviewUrl,
+            isMobileIntlDownloadFunnel: GetDeviceTypeUsingUserAgent() == 'mobile' && window.DFW.isMobileIntlDownloadFunnel,
+            isFeedbackAdScreenEnable: (GetDeviceTypeUsingUserAgent() != 'mobile' && !window.DFW.isPremium) ? (window.DFW.isFeedbackAdScreenEnable && !isFreeDownloadUser()) : window.DFW.isFeedbackAdScreenEnable,
+            newRetentionBundle: window.DFW.newRetentionBundle,
+            isRetentionFeedbackScreenEnable: (GetDeviceTypeUsingUserAgent() != 'mobile' && !window.DFW.isPremium) ? (window.DFW.isRetentionFeedbackScreenEnable && !isFreeDownloadUser()) : window.DFW.isRetentionFeedbackScreenEnable,
+            isMatchingCoverLetterPopupEnable: window.DFW.isMatchingCoverLetterPopupEnable,
+            openFullScreenDownloadFunnel: window.DFW.isFullScreenIntlDfnl ? window.DFW.isFullScreenIntlDfnl : GetDeviceTypeUsingUserAgent() == 'desktop' ? (window.DFW.Config.baselineFullscreenDF || ((window.DFW.isFullPageDFExp || window.DFW.isCLFullPageFeatureEnabled) &&  window.DFW.docType == window.DFW.DocType.Letter)|| window.DFW.isFullScreenIntlDfnl) : GetDeviceTypeUsingUserAgent() == 'tablet' ? (window.DFW.Config.baselineFullscreenDF || window.DFW.isFullScreenIntlDfnl || (window.DFW.isCLFullPageFeatureEnabled &&  window.DFW.docType == window.DFW.DocType.Letter)) : false,
+            fullScreenDownloadFunnelExpVariation: (GetDeviceTypeUsingUserAgent() == 'desktop' && window.DFW.docType == window.DFW.DocType.Letter) ? window.DFW.fullPageDFExpVariant : -1,
+            baselineFullscreenDF: window.DFW.Config.baselineFullscreenDF || window.DFW.isFullScreenIntlDfnl, isINTLRwd : window.DFW.isINTLRwd,
+            showBoldProBannerExp: window.DFW.showBoldProBannerExp,
+            emailDocDownloadLink: window.DFW.emailDocDownloadLink || window.DFW.Config.docEmailDownloadLink || window.DFW.docEmailDownloadLink,
+            enableFunnelOptimization: window.DFW.enableFunnelOptimization,
+            latestResume: window.DFW.latestResume,
+            uncheckDefaultBoldProfileOption: window.DFW.uncheckDefaultBoldProfileOption,
+            showIntlOptInDrftMode: window.DFW.showIntlOptInDrftMode,
+            isFullPageDFV2Exp: GetDeviceTypeUsingUserAgent() == 'desktop' ? !!window.DFW.Config.baselineFullPageDFV2Exp && !(window.DFW.isCLFullPageFeatureEnabled && window.DFW.docType == window.DFW.DocType.Letter) : false, 
+            isWebsiteCreated: window.DFW.Config.isCorePortal ? window.DFW.isWebsiteCreated : (window.DFW.isWebsiteCreated || !!window.DFW.disableBoldProWebsite),
+            resumeDateModified: window.DFW.resumeDateModified,
+            isResumeInReview: window.DFW.isResumeInReview,
+            baselineBoldProOptMobVar: (GetDeviceTypeUsingUserAgent() == 'mobile' && (window.DFW.isPremium || window.DFW.paymentStatus == 'Expired' || window.DFW.Config.isBoldProFree) && window.DFW.Config.baselineBoldProOptMobVar) ?  window.DFW.Config.baselineBoldProOptMobVar : false, 
+            isRemoveDOCXExp: window.DFW.isRemoveDOCXExp && window.DFW.skinCD && !window.DFW.Config.skinCD.includes(window.DFW.skinCD),
+            buildLetterUrl: window.DFW.Config.buildLetterUrl,
+            matchingCLPopupUrl : window.DFW.matchingCLPopupUrl,
+            profileUrl: window.DFW.Config.profileUrl,
+            coverLetterCount: (!isNaN(window.DFW.totalCoverLetters) && window.DFW.totalCoverLetters > -1) ? window.DFW.totalCoverLetters : window.DFW.coverLetterCount,
+            isFreeReviewAvailable: window.DFW.isFreeReviewAvailable,
+            isBoldProFree: window.DFW.Config.isBoldProFree || false,
+            profileData: window.DFW.profileData,
+            loadAllConfigs: window.DFW.loadAllConfigs,
+            boldProOptInCopyExpVariant: GetDeviceTypeUsingUserAgent() != 'mobile' && window.DFW.boldProOptInCopyExpVariant,
+            feedbackToolShareableUrl: `${window.DFW.Baseurl}feedback/document/${window.DFW.ResumeGuid}`,    
+            disableBoldProWebsite:window.DFW.disableBoldProWebsite,
+            isINTLCLFunnelFP:window.DFW.isINTLCLFunnelFP,
+            paymentStatus : window.DFW.paymentStatus,
+            isNoFRRAdBaslined: GetDeviceTypeUsingUserAgent() != 'mobile' && window.DFW.Config.isNoFRRAdBaslined,
+            isNoRCFeatureExp: GetDeviceTypeUsingUserAgent() != 'mobile' && window.DFW.Config.isNoRCFeatureExp,
+            resumeLinkExp : GetDeviceTypeUsingUserAgent() != 'mobile' && window.DFW.resumeLinkExpVariant > 2 ? window.DFW.resumeLinkExpVariant : -1,
+            fRROneClickExpVariant: window.DFW.docType != window.DFW.DocType.Letter && window.DFW.isFRROneClickExp && GetDeviceTypeUsingUserAgent() != 'mobile' ? window.DFW.fRROneClickExpVariant : -1,
+            multiChoiceFrontExpVariant: GetDeviceTypeUsingUserAgent() === 'desktop' && window.DFW.multiChoiceFrontExpVariant > 2 ? window.DFW.multiChoiceFrontExpVariant : -1,
+            baselineBoldProAdSlot: GetDeviceTypeUsingUserAgent() !== 'mobile' && window.DFW.isBaselineBoldProAdSlot,
+            isRsmShareTaken: window.DFW.feedbackCommentsData && window.DFW.feedbackCommentsData[window.DFW.ResumeGuid] ? true : false,
+            rexOrderId: window.DFW.rexOrderId || 0,
+            isLetrPortal: window.DFW.Config.isLetrPortal || (window.DFW.isCLFullPageFeatureEnabled && window.DFW.docType == window.DFW.DocType.Letter) ? true : false,
+            userPreferences: window.DFW.UserPreferences,
+            updateUserPref: updateUserPref,
+            deliveryMethod: window.DFW.deliveryMethod,
+            isFreeDownloadExpUser : window.DFW.Config.enableDFNLForNonPremiumUsers ? true : GetDeviceTypeUsingUserAgent() !== 'mobile' ? ((isFreeDownloadUser()) && !window.DFW.isPremium) : -1, 
+            letrBoldProfilePublished: window.DFW.isCLFullPageFeatureEnabled && window.DFW.docType == window.DFW.DocType.Letter ? window.DFW.isWebsitePublished : true,
+            isCLFullPageFeatureEnabled: window.DFW.isCLFullPageFeatureEnabled && window.DFW.docType == window.DFW.DocType.Letter,
+            isContextual: window.DFW.Config.isContextual,
+            isMPCLPlainTextFetureEnabled: GetDeviceTypeUsingUserAgent() !== 'mobile' && window.DFW.docType == window.DFW.DocType.Letter ? window.DFW.isMPCLPlainTextFetureEnabled:false,
+            isdownloadLinkFeatureEnabled: GetDeviceTypeUsingUserAgent() === 'desktop'  && window.DFW.isdownloadLinkFeatureEnabled,
+            isBoldProTransitionFeatureEnabled: GetDeviceTypeUsingUserAgent() !== 'mobile' && window.DFW.docType != window.DFW.DocType.Letter ? window.DFW.isBoldProTransitionFeatureEnabled : false,
+            landingPageExpVariant: getLandingPageExpVariant(),
+            optimizationExpVariant: -1,
+            optimizationExpMobVariant: -1,
+            isBaselineOptExpMob: GetDeviceTypeUsingUserAgent() === 'mobile' && window.DFW.docType != window.DFW.DocType.Letter && window.DFW.isBaselineOptExpMob,
+            isCheckCVScorePopupEnable : window.DFW.isCheckCVScorePopupEnable,
+            plainTxtOptExpVariant: GetDeviceTypeUsingUserAgent() !== 'mobile' ? window.DFW.plainTxtOptExpVariant : -1,
+            isEcomUpSellExp : window.DFW.Config.ecomUpSellExpId ? window.DFW.isEcomUpSellExp > 2 : false,
+            optimizationExpCVR: GetDeviceTypeUsingUserAgent() !== 'mobile' && window.DFW.docType != window.DFW.DocType.Letter ? window.DFW.optimizationExpCVRVariant ? window.DFW.optimizationExpCVRVariant : -1 : -1,
+            isGenerateClAdslotMobileExp: GetDeviceTypeUsingUserAgent() === 'mobile' &&  window.DFW.isGenerateClAdslotMobileExp,
+            boldProOptimizationExpVariant: window.DFW.isBoldProOptimizationExp ? window.DFW.isBoldProOptimizationExp : -1,
+            etlRebateTestExpVariant :  window.DFW.isELTrebateTestExpVariant ? window.DFW.isELTrebateTestExpVariant : -1,
+            isRWZFitToPageExp: GetDeviceTypeUsingUserAgent() === 'mobile' ? window.DFW.rwzFitToPageMobExp : window.DFW.isRWZFitToPageExp,
+            conductCvCheckExperiment: window.DFW.Config.cvCheckExp && conductCvCheckExperiment,
+            isGenerateCLandEAExp: GetDeviceTypeUsingUserAgent() !== 'mobile' && (window.DFW.isPremium || window.DFW.paymentStatus === 'Initial') && window.DFW.isGenerateCLandEAExpFeatureEnabled,
+            showEcomNiftChanges: window.DFW.showEcomNiftChanges,  
+            enableBuilderCVCheck: window.DFW.isVistorCVCheckExperiment,
+            showBoldProPublishExpChanges: GetDeviceTypeUsingUserAgent() !== 'mobile' && showBoldProPublishExpChanges(),
+            boldProPublishFlowExpVariant: window.DFW.boldProPublishFlowExpVariant ? window.DFW.boldProPublishFlowExpVariant : -1,
+            boldProPublishFlowMcbExpVariant: window.DFW.boldProPublishFlowMcbExpVariant ? window.DFW.boldProPublishFlowMcbExpVariant : -1,
+            boldProPublishExpV2: GetDeviceTypeUsingUserAgent() !== 'mobile' && showBoldProPublishV2ExpChanges() && window.DFW.boldProPublishExpV2,
+            boldProPublishExpV2Variant: showBoldProPublishV2ExpChanges() && window.DFW.boldProPublishExpV2Variant ? window.DFW.boldProPublishExpV2Variant : -1,
+            techConnectedTheme: window.DFW.techConnectedExp,
+            isByPassReviewId: window.DFW.Config.ByPassReviewId,
+            showParityExpChanges: window.DFW.showParityExp,
+            skipParityFeature: window.DFW.Config.skipParityFeature
+          },
+          isModalOpen: window.DFW.isModalOpen,
+          TrackDFWWidgetEvent: TrackDFWWidgetEventCallback,
+          SetUserPref: SetUserPreference,
+          onWebsiteLinkToggle: window.DFW.onWebsiteLinkToggle,
+          onRepublishWebsite: window.DFW.onRepublishWebsite,
+          ErrorCallBack: window.DFW.ErrorCallBack,
+          SuccessCallBack: window.DFW.SuccessCallBack,
+          MobileCloseCallBack: window.DFW.MobileCloseCallBack,
+          MobileOpenCallBack: window.DFW.MobileOpenCallBack,
+          stopDownloadedEvent: window.DFW.stopDownloadedEvent,
+          stopEmailedEvent: window.DFW.stopEmailedEvent,
+          renderCount: window.DFW.renderCount++,
+          resumeId: window.DFW.ResumeGuid,
+          docType: window.DFW.docType == window.DFW.DocType.Letter ? window.DFW.DocType.Letter : window.DFW.DocType.Resume,
+          isEuropeonResume: window.DFW.isEuropeonResume,
+          selectedFileType: window.DFW.selectedFileFormat || window.DFW.FileExtension.PDF,
+          colorProps: window.DFW.colorProps,
+          dimensions: window.DFW.dimensions,
+          enableQuickClose: window.DFW.enableQuickClose || window.DFW.Config.isQuickCloseEnable,
+          isPopupCentered: window.DFW.isPopupCentered,
+          customBackdropColor: window.DFW.customBackdropColor,
+          deviceType: GetDeviceTypeUsingUserAgent(),
+          FinishCallback: window.DFW.FinishCallback,
+          SocialCardCallback: window.DFW.SocialCardCallback
+        }
+      }
+      const downloadFunnelWidget = window.OBLibDFW.default.DownloadFunnel.new(widgetProps);
+      downloadFunnelWidget.render();
+
+    function getBoldProAdVariant() {
+      if (window.DFW.Config.isBoldProAdBaselined && window.DFW.DF_Exp_AdSlot < 3)
+        return '2';
+      return window.DFW.DF_Exp_AdSlot;
+    }
+    });
+    });
+  };
+
+  function GetDeviceTypeUsingUserAgent() {
+    var device_type = 'desktop';
+    if(navigator.userAgent?.match('Macintosh')?.length > 0 && navigator?.maxTouchPoints > 0) {
+      device_type = 'tablet';
+    } else if (navigator.userAgent.match(/iPad|Tablet|PlayBook/i)) {
+      device_type = 'tablet';
+    } else if (navigator.userAgent.match(/Mobile|Android|webOS|iPhone|iPod|Blackberry/i)) {
+      device_type = 'mobile';
+    }
+    
+    return device_type;
+  }
+
+  const getXsiteValue = () => {
+    switch (window.DFW.Config.portalCd) {
+      case "mpr":
+        return "MPRUS";
+    }
+  };
+
+  let getAllFeedbackToolDocComments = function (userId) {
+    if (getUserExperimentVariant(window.DFW.Config.multiChoiceFrontExpId) > 2) {
+      let feedbackToolDocId = localStorage.getItem("feedbackToolDocId");
+      let feedbackToolCommentCount = localStorage.getItem(
+        "feedbackToolCommentCount"
+      );
+      if (feedbackToolDocId && feedbackToolCommentCount) {
+        window.DFW.feedbackCommentsData = {};
+        return new Promise((resolve, reject) => {
+          window.DFW.feedbackCommentsData[feedbackToolDocId] = {
+            noOfComments: feedbackToolCommentCount,
+          };
+          resolve();
+        });
+      }
+      return new Promise(function (resolve, reject) {
+        const xSite = getXsiteValue();
+        const url = window.DFW.Config.feedbackToolUrl + "/getusercomments"
+        fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-site": xSite,
+          },
+          body: JSON.stringify({
+            query: `{
+            feedbackTool_GetDocumentsbyUserId(userId: "${userId}") {
+              documentId
+              noOfComments
+            }
+          }`,
+          }),
+        })
+          .then((response) => response.json())
+          .then((res) => {
+            if (
+              res.data &&
+              Array.isArray(res.data.feedbackTool_GetDocumentsbyUserId)
+            ) {
+              window.DFW.feedbackCommentsData = {};
+              res.data.feedbackTool_GetDocumentsbyUserId.forEach((docData) => {
+                window.DFW.feedbackCommentsData[docData.documentId] = {
+                  noOfComments: docData.noOfComments,
+                };
+              });
+            }
+          });
+      });
+    }
+  };
+
+  const getAllatestDocList = function (apiPathV1) {
+    return new Promise(function (resolve, reject) {
+      if (window.DFW.latestResumeList && Array.isArray(window.DFW.latestResumeList)) {
+        window.DFW.latestResume = window.DFW.latestResumeList[0];
+        resolve(window.DFW.latestResumeList);
+      } else {
+        const url = `${apiPathV1}documents/getall?userId=${window.DFW.userId}&portalCD=${window.DFW.Config.portalCd}&filterResponse=id,documentTypeCD,dateCreated,dateModified`;
+        const request = {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json'
+          },
+          credentials: 'include'
+        };
+        window.DFW.userId ? fetch(url, request)
+          .then((response) => response.json())
+          .then((res) => {
+            if (res && Array.isArray(res)) {
+              const firstRsmeDoc = res.find(doc => doc.documentTypeCD === "RSME");
+              window.DFW.latestResume = firstRsmeDoc;
+            }
+            resolve(res);
+          })
+          .catch(error => reject(error)) : resolve([]);
+      }
+    });
+  }
+
+  function handleConfig(config) {
+    if (GetDeviceTypeUsingUserAgent() == "mobile" && config.mobile) {
+      window.DFW.Config = { ...config, ...config.mobile };
+    } else if (window.DFW.loadAllConfigs && window.DFW.isLetterConfig) {
+      window.DFW.letterConfig = config;
+    } else {
+      window.DFW.Config = config;
+    }
+    if (!isFreeDownloadUser() && config.dfnlOptimizationConfig && GetDeviceTypeUsingUserAgent() != "mobile") {
+      window.DFW.Config = { ...window.DFW.Config, ...config.dfnlOptimizationConfig };
+    } 
+  }
+
+  function processMobileLocalization(configObj, localizedObj){
+    for(var key in configObj) {
+      if (configObj.hasOwnProperty(key)) {
+        let val = configObj[key];
+        if(val) {
+          if(localizedObj[val]) {
+              localizedObj[key] = localizedObj[val];
+          }
+        }
+      }
+    }
+  }
+  function handleProcessLocalization(data) {
+    if( GetDeviceTypeUsingUserAgent() == 'mobile' && data.Config && data.Config.localizedMappingMobile){
+      processMobileLocalization(data.Config.localizedMappingMobile, data.Localization)
+      window.DFW.Localization = data.Localization;
+    } else if (window.DFW.loadAllConfigs && window.DFW.isLetterConfig) {
+      window.DFW.LetterLocalization = data.Localization;
+    } 
+    else{
+      window.DFW.Localization = data.Localization;
+    }
+  }
+
+  function handleLocalization(result, resolve) {
+    var data = JSON.parse(result);
+    if (data && data.Localization) {
+	  handleProcessLocalization(data);
+	  handleConfig(data.Config);
+	  if (window.DFW.downloadFunnelV2) {
+        window.DFW.Config.moreSurveyOption = true;
+        window.DFW.Config.isAppMessagingView = true;
+	  }
+	  window.globalCompVars = window.globalCompVars || {};
+	  window.globalCompVars.BaseApiUrl = window.globalCompVars.BaseApiUrl || data.Config.apiPathV1;
+	  window.globalCompVars.BaseApiUrlV2 = window.globalCompVars.BaseApiUrlV2 || data.Config.apiPathV2;
+    }
+    if (resolve) resolve(data);
+  }
+
+  function handleLocalizedUrlList(config, localization) {
+    let configData = config;
+    configData.localizedUrlList && configData.localizedUrlList.forEach((key) => {
+      if (configData[key]) {
+        let url = configData[key];
+        
+        const placeholders = url.match(/{(.*?)}/g);
+        if (placeholders) {
+          placeholders.forEach((placeholder) => {
+            const placeholderKey = placeholder.replace(/[{}]/g, '');
+            
+            // Replace placeholder with corresponding localization value if available
+            if (localization[placeholderKey]) {
+              url = url.replace(placeholder, localization[placeholderKey]);
+            }
+          });
+        }
+        
+        // Update the URL in configData
+        configData[key] = url;
+      }
+    });
+    window.DFW.Config = configData;
+  }
+
+  function handleLiteLocalization(result, resolve) {
+    var data = JSON.parse(result);
+    if (data) {
+		  handleProcessLocalization({Config: window.DFW.Config, Localization: data});
+      if(window.DFW.isLitePortal){
+        handleLocalizedUrlList(window.DFW.Config, window.DFW.Localization)
+      }
+      if(window.DFW.loadCLAndCVLocalization) {
+        window.DFW.Localization_rsme = data;
+      }
+	      for(var key in data) {
+	        if(key.indexOf('%') != -1) {
+	          let values = key.split('%');
+	          if(values.length > 1) {
+	            if(window.DFW.Config[values[0]]) {
+	              window.DFW.Config[values[0]][values[1]] = data[key];
+	            }
+	            else {
+	              window.DFW.Config[values[0]] = {};
+	              window.DFW.Config[values[0]][values[1]] = data[key];
+	            }
+	          }
+	        }
+	      };
+		  window.globalCompVars = window.globalCompVars || {};
+		  window.globalCompVars.BaseApiUrl = window.globalCompVars.BaseApiUrl || window.DFW.Config.apiPathV1;
+		  window.globalCompVars.BaseApiUrlV2 = window.globalCompVars.BaseApiUrlV2 || window.DFW.Config.apiPathV2;
+    }
+    if (resolve) resolve(data);
+  }
+
+  function handleLetterLocalization(result, resolve) {
+    let localizationFolderName = window.DFW.Config.localizationFolderName + "_letr";
+    window.DFW.cultureValue = window.DFW.Config.localizationFileName ? window.DFW.Config.localizationFileName : window.DFW.cultureValue;
+    var url = `${(window.DFW.subDomainUrl || window.DFW.Baseurl)}blobcontent/dfnl/${window.DFW.Environment}/resource/${localizationFolderName}/${window.DFW.cultureValue}.json`;
+    callAjax(url,"GET",false,false,function(result, resolve) {
+      var clData = JSON.parse(result);
+      if (clData) {
+        if (GetDeviceTypeUsingUserAgent() == 'mobile' && window.DFW.Config && window.DFW.Config.localizedMappingMobile) {
+          processMobileLocalization(window.DFW.Config.localizedMappingMobile, clData)
+          window.DFW.Localization_letr = clData;
+        } else {
+          window.DFW.Localization_letr = clData;
+        } 
+        resolve && resolve(clData);
+      }
+    },resolve);
+  }
+
+
+  function handleLocalizationConfig(result, resolve) {
+    let data = JSON.parse(result);
+    let containsSeparateConfig = data.Config?.localizationFolderName ? true: false;
+    if(window.DFW.isLitePortal || containsSeparateConfig) {
+      let localizationFolderName = containsSeparateConfig ? data.Config.localizationFolderName :"lc";
+      window.DFW.cultureValue = (containsSeparateConfig && !window.DFW.isLitePortal) ? data.Config.localizationFileName: window.DFW.cultureValue;
+      if(window.DFW.isLitePortal && window.DFW.cultureValue == "en") {
+        data.Config = {...data.Config, ...data.Config.en};
+      }
+    var configUrl = `${(window.DFW.subDomainUrl || window.DFW.Baseurl)}blobcontent/dfnl/${window.DFW.Environment}/resource/${localizationFolderName}/${window.DFW.cultureValue}.json`;
+		  handleConfig(data.Config);
+		  callAjax(
+        configUrl,
+        "GET",
+        false,
+        false,
+        handleLiteLocalization,
+        resolve
+		  );
+    }
+    else {
+		  handleLocalization(result, resolve);
+    }
+  }
+
+  var getUserDocument = function (url) {
+    return new Promise(function (resolve, reject) {
+      callAjax(
+        window.DFW.Baseurl + "eb/api/v1/documents/" + window.DFW.userId + '/' + window.DFW.ResumeGuid,
+        "GET",
+        false,
+        true,
+        handleDocument,
+        resolve
+      );
+    });
+  }
+
+  function isTPSurveyViewed(userPreferences) {
+    window.DFW.isTrustPilotSurveyViewed = userPreferences.some((pref) => {
+      return (
+        pref.code == "TPOT" &&
+        pref.value == "THRESHOLD"
+      );
+    });
+  }
+
+  function handleDocument(result, resolve) {
+    var document = JSON.parse(result);
+    if (document && document.id) {
+      const hasButtons = Array.isArray(document.sections) &&
+        document.sections.findIndex(x => x.sectionTypeCD === 'BUTN') > -1;
+      resolve(hasButtons);
+    }
+  }
+
+  function isECLSkuEnabled(userPreferences) {
+
+    window.DFW.isECLSkuEnabled = userPreferences.some((pref) => {
+      return (pref.code == "SUBF")
+    })
+  }
+
+
+  function handlePreferences(result, resolve, dataFromSessionStorage) {
+    var data = [];
+    if (dataFromSessionStorage) {
+      data = result;
+    }
+    else {
+      data = JSON.parse(result);
+    }
+    if (data) {
+      window.DFW.UserPreferences = data;
+      window.DFW.BigInterViewPref = data.find(function (item) {
+        return window.DFW.Config && item.code == window.DFW.Config.bigInterviewUserPref && item.value == "1";
+      }) ? true : false;
+      isTPSurveyViewed(data);
+      isECLSkuEnabled(data);
+      if (data.find(function (item) {
+        return window.DFW.Config && item.code == window.DFW.Config.surveyUserPref && item.value == "1";
+      })) {
+        window.DFW.SurveyViewed = true;
+      }
+      else {
+        window.DFW.SurveyViewed = false;
+      }
+      window.DFW.UpsellCoverLetterViewed = data.find(function (item) {
+        return window.DFW.Config && item.code == window.DFW.Config.upsellCoverletterUserPref && item.value == "1";
+      }) ? true : false;
+      const existingSessionStorage = window.DFW.sessionStorageData;
+      if (existingSessionStorage && !existingSessionStorage.userPreferences) {
+          existingSessionStorage.userPreferences =  window.DFW.UserPreferences;
+          sessionStorage.setItem('userinfo', JSON.stringify(existingSessionStorage));
+      } 
+    }
+  }
+
+  const getResumeReviewStageByStepCd = (stepCD) => {
+    let stepId = 1;
+    const RsmReviewSteps = [
+      {
+        id: 1,
+        stepCD: "",
+      },
+      {
+        id: 2,
+        stepCD: "NEWDOC",
+      },
+      {
+        id: 3,
+        stepCD: "INPROC",
+      },
+      {
+        id: 4,
+        stepCD: "SUBMIT",
+      },
+      {
+        id: 5,
+        stepCD: "ASSIGN",
+      },
+      {
+        id: 6,
+        stepCD: "APPROV",
+      },
+      {
+        id: 7,
+        stepCD: "RESEND",
+      },
+    ];
+    if (RsmReviewSteps && RsmReviewSteps.length > 0) {
+      let stage = RsmReviewSteps.find((x) => x.stepCD == stepCD);
+      if (stage) {
+        stepId = stage.id;
+      }
+    }
+    return stepId;
+  };
+
+  // function isUserPremium(userUid,productId,baseApi) {
+  //     callAjax(
+  //     baseApi +
+  //     "users/ispremium/" +
+  //     userUid +
+  //     "/" +
+  //     productId,
+  //     "GET",
+  //     true,
+  //     true,
+  //     premiumUserDetail
+  //     );
+  // }
+  // function premiumUserDetail(result, resolve) {
+  //     var isPremiumUser = false;
+  //     isPremiumUser = JSON.parse(result);
+  //     window.DFW.isPremium=isPremiumUser;
+  // }
+  function getUserExperimentVariant(experimentId) {
+    let experimentDetails = {};
+    let urlParamDisabletests = getUrlParam('disabletests');
+	let cookievalDisbaleTest = readCookie('disabletests');
+    let urlParamRunTest = getUrlParam('runtest');
+    let cookieValRunTest = readCookie('runtest');
+	
+    let variant = getDisableRunTestVariant(experimentId);
+    if (!(urlParamDisabletests == 1 || cookievalDisbaleTest == 1) && variant < 0 && window.RTN.UserExperiments && window.RTN.UserExperiments.length > 0) {
+      experimentDetails = window.RTN.UserExperiments.filter(exp => exp.experiment_uid == experimentId)[0];
+      variant = experimentDetails && experimentDetails.variant ? experimentDetails.variant : -1;
+    }
+    let disableFreeCountryExperiments = window.DFW.Config.disableFreeCountryExperiments || window.DFW.disableFreeCountryExperiments
+    let enableFreeCountries = window.DFW.Config.freeDownloadUserCountries || window.DFW.enableFreeCountries
+    if ( disableFreeCountryExperiments 
+      && disableFreeCountryExperiments.indexOf(experimentId) >= 0
+      && enableFreeCountries && isFreeDownloadUser()) {
+      return -1;
+    }
+	
+    if(variant < 0 && (urlParamDisabletests == 1 || cookievalDisbaleTest == 1) && (!urlParamRunTest || !cookieValRunTest)) {
+      return -1;
+    }
+    else {
+      return variant;
+    }
+  }
+
+  function getUrlParam(key) {
+    key = key.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+    var regex = new RegExp('[\\?&]' + key + '=([^&#]*)');
+    var results = regex.exec(location.search);
+    return results === null ? null : decodeURIComponent(results[1].replace(/\+/g, ' '));
+  };
+
+  function readCookie(name) {
+    var nameEQ = name + "=";
+    var ca = document.cookie.split(';');
+    for (var i = 0; i < ca.length; i++) {
+      var c = ca[i];
+      while (c.charAt(0) == ' ') c = c.substring(1, c.length);
+      if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length, c.length);
+    }
+    return null;
+  }
+  function setCookie(cname, cvalue, exdays) {
+    var d = new Date();
+    d.setTime(d.getTime() + (exdays * 24 * 60 * 60 * 1000));
+    var expires = "expires=" + d.toUTCString(),
+      domain = "domain=" + window.location.hostname.substring(window.location.hostname.indexOf("."));
+    document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/;" + domain;
+  }
+
+  function setPseudoLocalCookie(cname, cvalue, exdays) {
+    var d = new Date();
+    d.setTime(d.getTime() + (exdays * 24 * 60 * 60 * 1000));
+    var expires = "expires=" + d.toUTCString(),
+      domain = "domain=" + window.location.hostname;
+    document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/;" + domain;
+  }
+
+  function isPseudoLocalization() {
+    if (GetQueryString("pseudolocal") == 1 || readCookie("pseudolocal") == 1) {
+      if (readCookie("pseudolocal") == null) {
+        setCookie("pseudolocal", "1", 18000);
+      }
+      return true;
+    }
+    else return false;
+  }
+  function getDisableRunTestVariant(expId) {
+    let caseIndex = -1;
+    let disabletests, runtest;
+    let urlParamDisabletests = getUrlParam('disabletests');
+    let urlParamRunTest = getUrlParam('runtest');
+
+    let cookievalDisbaleTest = readCookie('disabletests');
+    let cookieValRunTest = readCookie('runtest');
+
+    if (urlParamDisabletests || urlParamRunTest) {
+      disabletests = parseInt(urlParamDisabletests, 10);
+      runtest = urlParamRunTest;
+      //write cookie 
+      setCookie("disabletests", disabletests, 1);
+      setCookie("runtest", runtest, 1)
+    }
+    else if (cookieValRunTest && cookievalDisbaleTest) {
+      disabletests = cookievalDisbaleTest;
+      runtest = cookieValRunTest;
+    }
+	
+    if (runtest) {
+      let tests = runtest.split(',');
+      if (disabletests && disabletests == 1) {
+        let result = tests.map(test => {
+          caseIndex = test.indexOf(expId + "_") > -1 ? test.charAt(test.length - 1) : caseIndex;
+          return test;
+        });
+      }
+    }
+    return parseInt(caseIndex, 10);
+  }
+
+  function handleClaims(result, resolve) {
+    var data = JSON.parse(result);
+    data = data && data.claims ? data.claims : data ? data : "";
+    if (data && data.user_uid) {
+      window.DFW.userId = data.user_uid;
+      window.DFW.email = data.email;
+      let name = !!data.firstName ? data.firstName + ' ' : '';
+      let lastName = !!data.lastName ? data.lastName + ' ' : '';
+      window.DFW.firstName = name.trim();
+      window.DFW.lastName = lastName.trim();
+      if (!!data.lastName) {
+        name = name + data.lastName;
+      }
+
+      window.DFW.userName = name.trim();
+      window.DFW.isAgent = data.proxy_user == "True" ? true : false;
+      window.DFW.countryCd = getTestCountry(data.countryCode) || window.DFW.countryCd;
+      window.DFW.userRole = data.role;
+    }
+  }
+
+  function updateSessionStorage(value) {
+    const existingSessionStorage = window.DFW.sessionStorageData;
+    if (existingSessionStorage && existingSessionStorage.userPreferences) {
+        const existingPref = existingSessionStorage.userPreferences;
+        window.DFW.UserPreferences = [...existingPref, value];
+        existingSessionStorage.userPreferences =  window.DFW.UserPreferences;
+        sessionStorage.setItem('userinfo', JSON.stringify(existingSessionStorage));
+    }    
+  }
+
+  function SetUserPreference(code) {
+    let payload = {
+      'code': code || window.DFW.Config.surveyUserPref,
+      'created_on': new Date().toDateString(),
+      'value': "1"
+    };
+    updateSessionStorage(payload);
+    let callbackFn;
+    switch (code) {
+      case "DFUS":
+        callbackFn = setUpsellCoverLetterViewed;
+        break;
+      default:
+        callbackFn = setSurveyVisibility;
+        break;
+    }
+    callAjax(
+      window.DFW.Baseurl +
+      "eb/api/v1/userpreferences?user_uid=" + window.DFW.userId + "&portalCd=" + window.DFW.Config.portalCd +
+      "&cookieEnabled=" +
+      navigator.cookieEnabled,
+      "POST",
+      false,
+      true,
+      callbackFn,
+      true,
+      JSON.stringify(payload)
+    );
+  }
+
+  function setFeatures(features) {
+    window.DFW.features = features;
+    let isCLFullPageFeatureEnabled = IsFeatureEnabled('CLFPDFNL');
+    window.DFW.isCLFullPageFeatureEnabled = isCLFullPageFeatureEnabled;
+    window.DFW.isMPCLPlainTextFetureEnabled = IsFeatureEnabled('BLCLDFAS');
+    window.DFW.isdownloadLinkFeatureEnabled = IsFeatureEnabled('RTDFELNK');
+    window.DFW.isBoldProTransitionFeatureEnabled = IsFeatureEnabled('RTDFTSBP');
+    window.DFW.isBaselineBoldProAdSlot = window.DFW.docType == window.DFW.DocType.Letter && IsFeatureEnabled('BSLBPAD');
+    window.DFW.isECLSkuFeatueEnabled = IsFeatureEnabled('ECM_SUBS_FTR_GATE');
+    window.DFW.isBaselineOptExpMob = IsFeatureEnabled('RTMDFOPT');
+    window.DFW.isGenerateCLandEAExpFeatureEnabled = IsFeatureEnabled('BLDFCLEA');
+  }
+
+  function setSurveyVisibility(response, resolve) {
+    if (resolve) {
+      window.DFW.SurveyViewed = true;
+    }
+  }
+
+  function setUpsellCoverLetterViewed(response, resolve) {
+    if (resolve) {
+      window.DFW.UpsellCoverLetterViewed = true;
+    }
+  }
+
+  function IsSVGEnabled(emailId, emailDomain) {
+    if (emailId != '' && emailId != null) {
+      let isBoldUser = emailId.includes(emailDomain);
+      if (isBoldUser) {
+        return true;
+      }
+      let svgDownload = GetQueryString('svgDownload');
+      if (svgDownload && svgDownload == '1') {
+        return true;
+      }
+    }
+    return false;
+  }
+  function GetQueryString(key) {
+
+    var urlParams = new RegExp('[\?&]' + key + '=([^&#]*)').exec(window.location.href);
+    let value = urlParams ? decodeURI(urlParams[1]) || 0 : null;
+    return (value ? value : null);
+  }
+
+  function IsFeatureEnabled(featurCd) {
+    return window.DFW.features && window.DFW.features.find(feature => feature.featureCD == featurCd && feature.isActive) ? true : false;
+  }
+
+  function TrackDFWWidgetEventCallback(eventName, eventProps) {
+    if(eventName != "identify"){
+    eventProps["Platform"] = "Web";
+    eventProps["Portal"] = window.DFW.Config.portal;
+    eventProps["Login Status"] = "TRUE";
+    }
+    if (window.DFW.isTestBed || (readCookie("isproteus") == "true") || (typeof TrackPageEvents != "undefined" && typeof analytics != "undefined")) {
+      window.TrackEvents(eventName, eventProps, window.DFW.userId);
+    }
+    else {
+      var analyticsLoaded = setInterval(function () {
+        if ((readCookie("isproteus") == "true") || (typeof TrackPageEvents != "undefined" && typeof analytics != "undefined")) {
+          window.TrackEvents(eventName, eventProps, window.DFW.userId);
+          clearInterval(analyticsLoaded);
+        }
+      }, 100);
+    }
+  }
+  scope.RenderDownloadFunnel = function (data) {
+    var packageLoaded = setInterval(function () {
+      if (window.DFW.BundleLoaded) {
+        clearInterval(packageLoaded);
+        renderDownloadFunnelWidget(data);
+      }
+    }, 10);
+  }
+  return scope;
+})(window.DFW.Widget || {});
