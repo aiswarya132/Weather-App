@@ -77,13 +77,13 @@ WeatherDetails.propTypes = {
 function App() {
   const [icon, setIcon] = useState(snowIcon) ;
   const [temp, setTemp] = useState(0);
-  const [city, setCity] = useState("Chennai");
+  const [city, setCity] = useState("Tirunelveli");
   const [country, setCountry] = useState("INDIA");
   const [lat, setLat] = useState(0);
   const [log, setLog] = useState(0);
   const [wind,setWind] = useState(0);
   const [humidity,setHumidity] = useState(0);
-  const [text,setText] = useState("Chennai")
+  const [text,setText] = useState("Tirunelveli");
 
   const[cityNotFound, setCityNotFound] = useState(false);
   const[loading, setLoading] = useState(false);
@@ -91,50 +91,65 @@ function App() {
   const[error,setError] = useState(null);
 
   const weatherIconMap = {
-    "01d" : sunIcon,
-    "01n" : sunIcon,
-    "02d" : sunIcon,
-    "02n" : sunIcon,
-    "03d" : drizzleIcon,
-    "03n" : drizzleIcon,
-    "04d" : drizzleIcon,
-    "04n" : drizzleIcon,
-    "09d" : rainIcon,
-    "09n" : rainIcon,
-    "10d" : rainIcon,
-    "10n" : rainIcon,
-    "13d" : snowIcon,
-    "13n" : snowIcon,
+    clear: sunIcon,
+    cloudy: drizzleIcon,
+    rain: rainIcon,
+    snow: snowIcon,
+  };
+
+  const getIconFromWeatherCode = (weatherCode) => {
+    if (weatherCode === 0) return weatherIconMap.clear;
+    if ([1, 2, 3, 45, 48].includes(weatherCode)) return weatherIconMap.cloudy;
+    if ([51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82, 95, 96, 99].includes(weatherCode)) {
+      return weatherIconMap.rain;
+    }
+    if ([71, 73, 75, 77, 85, 86].includes(weatherCode)) return weatherIconMap.snow;
+    return sunIcon;
   };
 
   // api fetch panrom last ah useState kelsa than podanum
   const search = async () => {
-    setLoading(true);
-  let api_key = "15795039828ed6452b8b0ef21f617404";
-  
-  let url = `https://api.openweathermap.org/data/2.5/weather?q=${text}&appid=${api_key}&units=metric`;
-
-  try{
-    let res = await fetch (url);
-    let data = await res.json();
-    
-    if (data.cod === "404") {
-      console.error("City not found");
+    const cityQuery = text.trim();
+    if (!cityQuery) {
       setCityNotFound(true);
-      setLoading(false);
+      setError("Please enter a city name.");
       return;
     }
-    setHumidity(data.main.humidity);
-    setWind(data.wind.speed);
-    setTemp(Math.floor(data.main.temp));
-    setCity(data.name);
-    setCountry(data.sys.country);
-    setLat(data.coord.lat);
-    setLog(data.coord.lon);
 
-    // icon sun cloud changa aaka
-    const weatherIconCode = data.weather[0].icon;
-    setIcon(weatherIconMap[weatherIconCode] || sunIcon);
+    setLoading(true);
+    setError(null);
+    setCityNotFound(false);
+
+  try{
+    const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityQuery)}&count=1&language=en&format=json`;
+    const geoRes = await fetch(geoUrl);
+    const geoData = await geoRes.json();
+
+    if (!geoRes.ok || !geoData.results || geoData.results.length === 0) {
+      setCityNotFound(true);
+      return;
+    }
+
+    const cityData = geoData.results[0];
+    const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${cityData.latitude}&longitude=${cityData.longitude}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code&timezone=auto`;
+    const weatherRes = await fetch(weatherUrl);
+    const weatherData = await weatherRes.json();
+
+    if (!weatherRes.ok || !weatherData.current) {
+      setError("Unable to fetch weather data for this city.");
+      return;
+    }
+
+    setHumidity(Math.round(weatherData.current.relative_humidity_2m));
+    setWind(Math.round(weatherData.current.wind_speed_10m));
+    setTemp(Math.round(weatherData.current.temperature_2m));
+    setCity(cityData.name);
+    setCountry(cityData.country_code || cityData.country || "N/A");
+    setLat(cityData.latitude);
+    setLog(cityData.longitude);
+
+    const weatherCode = weatherData.current.weather_code;
+    setIcon(getIconFromWeatherCode(weatherCode));
     
   }
   catch(error){
